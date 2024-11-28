@@ -1,21 +1,52 @@
-name: Create Release
+
+name: Release
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - release
 
 jobs:
   release:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
       deployments: write
 
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Determine version bump
+        id: determine_version
+        run: |
+          if [[ "$(gh pr view ${{ github.event.pull_request.number }} --json labels -q ".labels[].name")" == *"major"* ]]; then
+            echo "::set-output name=version::major"
+          elif [[ "$(gh pr view ${{ github.event.pull_request.number }} --json labels -q ".labels[].name")" == *"minor"* ]]; then
+            echo "::set-output name=version::minor"
+          else
+            echo "::set-output name=version::patch"
+          fi
+
+      - name: Bump version
+        run: |
+          version=${{ steps.determine_version.outputs.version }}
+          git tag -a "v$(date +%Y%m%d%H%M%S)-${version}" -m "Version bump to ${version}"
+          git push origin --tags
+
+      - name: Get PR details
+        id: pr_details
+        uses: actions/github-script@v3
+        with:
+          script: |
+            const pr = await github.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+            });
+            return pr.data;
 
       - name: Create GitHub Release
         id: create_release
@@ -23,9 +54,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release ${{ github.run_number }}
+          tag_name: v${{ steps.determine_version.outputs.version }}
+          release_name: SillyTavern-QOL ${{ steps.determine_version.outputs.version }}
           body: |
-            Release notes for this version.
+           ## What's new in this release?
+           - **PR Title**: ${{ steps.pr_details.outputs.title }}
+           - **Merged by**: ${{ steps.pr_details.outputs.user.login }}
+           - **Changes**: ${{ steps.pr_details.outputs.body }}
           draft: false
           prerelease: false
