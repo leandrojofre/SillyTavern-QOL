@@ -33,9 +33,9 @@ jobs:
       - name: Bump version
         run: |
           version=${{ steps.determine_version.outputs.version }}
-          git tag -a "v$(date +%Y%m%d%H%M%S)-${version}" -m "Version bump to ${version}"
           git config user.email "leandrotomasjofre@gmail.com"
           git config user.name "Leandro Jofre"
+          git tag -a "v$(date +%Y%m%d%H%M%S)-${version}" -m "Version bump to ${version}"
           git push origin --tags
 
       - name: Get PR details
