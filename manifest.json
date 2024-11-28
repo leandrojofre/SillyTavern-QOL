@@ -1,5 +1,5 @@
 {
-    "display_name": "Optimizations",
+    "display_name": "QOL",
     "loading_order": 9,
     "requires": [],
     "optional": [],
@@ -7,6 +7,6 @@
     "css": "style.css",
     "author": "Leandro Jofre",
     "version": "0.0.1",
-    "homePage": "https://github.com/leandrojofre/SillyTavern-Optimizations",
+    "homePage": "https://github.com/leandrojofre/SillyTavern-QOL.git",
     "auto_update": true
 }

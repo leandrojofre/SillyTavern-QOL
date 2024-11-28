@@ -8,7 +8,7 @@ import {eventSource, event_types, saveSettingsDebounced} from "../../../../scrip
 
 
 // Keep track of where your extension is located, name should match repo name
-const extensionName = "SillyTavern-Optimizations";
+const extensionName = "SillyTavern-QOL";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 const extensionSettings = extension_settings[extensionName];
 const defaultSettings = {
