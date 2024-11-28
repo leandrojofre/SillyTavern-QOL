@@ -14,10 +14,14 @@ jobs:
     permissions:
       contents: write
       deployments: write
+      issues: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Use GITHUB_TOKEN
+        run: echo "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Determine version bump
         id: determine_version
