@@ -23,11 +23,11 @@ jobs:
         id: determine_version
         run: |
           if [[ "$(gh pr view ${{ github.event.pull_request.number }} --json labels -q ".labels[].name")" == *"major"* ]]; then
-            echo "::set-output name=version::major"
+            echo "version=major" >> $GITHUB_OUTPUT
           elif [[ "$(gh pr view ${{ github.event.pull_request.number }} --json labels -q ".labels[].name")" == *"minor"* ]]; then
-            echo "::set-output name=version::minor"
+            echo "version=minor" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=version::patch"
+            echo "version=patch" >> $GITHUB_OUTPUT
           fi
 
       - name: Bump version
