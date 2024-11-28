@@ -27,17 +27,24 @@ jobs:
       - name: Determine version bump
         id: determine_version
         run: |
+          current_version=$(git describe --tags $(git rev-list --tags --max-count=1))
+          echo "current_version=$current_version" >> $GITHUB_OUTPUT
+          echo "Current version: $current_version"
           if [[ "$(gh pr view ${{ github.event.pull_request.number }} --json labels -q ".labels[].name")" == *"major"* ]]; then
+            new_version=$(echo $current_version | awk -F. '{print $1+1 ".0.0"}')
             echo "version=major" >> $GITHUB_OUTPUT
           elif [[ "$(gh pr view ${{ github.event.pull_request.number }} --json labels -q ".labels[].name")" == *"minor"* ]]; then
+            new_version=$(echo $current_version | awk -F. '{print $1 "." $2+1 ".0"}')
             echo "version=minor" >> $GITHUB_OUTPUT
           else
+            new_version=$(echo $current_version | awk -F. '{print $1 "." $2 "." $3+1}')
             echo "version=patch" >> $GITHUB_OUTPUT
           fi
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
       - name: Bump version
         run: |
-          version=${{ steps.determine_version.outputs.version }}
+          version=${{ steps.determine_version.outputs.new_version }}
           git config user.email "leandrotomasjofre@gmail.com"
           git config user.name "Leandro Jofre"
           git tag -a "v$(date +%Y%m%d%H%M%S)-${version}" -m "Version bump to ${version}"
@@ -53,6 +60,9 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.payload.pull_request.number,
             });
+            core.setOutput("title", pr.data.title);
+            core.setOutput("user", pr.data.user);
+            core.setOutput("body", pr.data.body);
             return pr.data;
 
       - name: Create GitHub Release
@@ -61,8 +71,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.determine_version.outputs.version }}
-          release_name: SillyTavern-QOL ${{ steps.determine_version.outputs.version }}
+          tag_name: v${{ steps.determine_version.outputs.new_version }}
+          release_name: SillyTavern-QOL ${{ steps.determine_version.outputs.new_version }}
           body: |
            ## What's new in this release?
            - **PR Title**: ${{ steps.pr_details.outputs.title }}
