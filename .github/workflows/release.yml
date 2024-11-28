@@ -27,9 +27,15 @@ jobs:
       - name: Determine version bump
         id: determine_version
         run: |
-          current_version=$(git describe --tags $(git rev-list --tags --max-count=1))
+          if [ -z "$(git tag)" ]; then
+            current_version="0.0.0"
+          else
+            current_version=$(git describe --tags $(git rev-list --tags --max-count=1))
+          fi
+          
           echo "current_version=$current_version" >> $GITHUB_OUTPUT
           echo "Current version: $current_version"
+      
           if [[ "$(gh pr view ${{ github.event.pull_request.number }} --json labels -q ".labels[].name")" == *"major"* ]]; then
             new_version=$(echo $current_version | awk -F. '{print $1+1 ".0.0"}')
             echo "version=major" >> $GITHUB_OUTPUT
@@ -40,6 +46,7 @@ jobs:
             new_version=$(echo $current_version | awk -F. '{print $1 "." $2 "." $3+1}')
             echo "version=patch" >> $GITHUB_OUTPUT
           fi
+      
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
       - name: Bump version
