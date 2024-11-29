@@ -63,7 +63,7 @@ jobs:
           pr=$(gh pr view ${{ github.event.pull_request.number }} --json title,author,body)
           echo "title=$(echo $pr | jq -r .title)" >> $GITHUB_OUTPUT
           echo "user=$(echo $pr | jq -r .author.login)" >> $GITHUB_OUTPUT
-          echo "body=$(echo $pr | jq -r .body)" >> $GITHUB_OUTPUT
+          echo -e "body=$(echo $pr | jq -r .body | sed ':a;N;$!ba;s/\n/\\n/g')" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         id: create_release
