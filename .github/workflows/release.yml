@@ -51,13 +51,13 @@ jobs:
 
       - name: Get PR details
         id: pr_details
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pr=$(gh pr view ${{ github.event.pull_request.number }} --json title,author,body)
           echo "title=$(echo $pr | jq -r .title)" >> $GITHUB_OUTPUT
           echo "user=$(echo $pr | jq -r .author.login)" >> $GITHUB_OUTPUT
           echo "body=$(echo $pr | jq -r .body)" >> $GITHUB_OUTPUT
+          env:
+            GH_TOKEN: ${{ github.token }}
 
       - name: Create GitHub Release
         id: create_release
