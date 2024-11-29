@@ -51,6 +51,8 @@ jobs:
 
       - name: Get PR details
         id: pr_details
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pr=$(gh pr view ${{ github.event.pull_request.number }} --json title,author,body)
           echo "title=$(echo $pr | jq -r .title)" >> $GITHUB_OUTPUT
