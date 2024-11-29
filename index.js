@@ -1,6 +1,3 @@
-// The main script for the extension
-// The following are examples of some basic extension functionality
-
 //You'll likely need to import extension_settings, getContext, and loadExtensionSettings from extensions.js
 import {extension_settings} from "../../../extensions.js";
 //You'll likely need to import some other functions from the main script
@@ -17,46 +14,27 @@ const defaultSettings = {
 };
 
 const log = (...msg) => {
-	if (!extensionSettings.debug) return;
+	if (!extensionSettings.debug || !extensionSettings.enabled) return;
 	console.log("[" + extensionName + "]", ...msg);
 };
 
-// Loads the extension settings if they exist, otherwise initializes them to the defaults.
 async function loadSettings() {
-	//Create the settings if they don't exist
 	extension_settings[extensionName] = extension_settings[extensionName] || {};
 	if (Object.keys(extension_settings[extensionName]).length === 0) {
 		Object.assign(extension_settings[extensionName], defaultSettings);
-		saveSettingsDebounced();
+		await saveSettingsDebounced();
 	}
 
-	// Updating settings in the UI
-	$("#activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
-	$("#activate-debug").prop("checked", extensionSettings.debug).trigger("input");
+	$("#qol-activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
+	$("#qol-activate-debug").prop("checked", extensionSettings.debug).trigger("input");
 }
 
-function chatChanged(...args) {
-	if (args[0] == undefined) return log("CHAT UNDEFINED");
-
-	log("CHAT_CHANGED", args);
-}
-
-function enableExtension() {
-	if (extensionSettings.enabled) {
-		eventSource.on(event_types.CHAT_CHANGED, chatChanged);
-	} else {
-		eventSource.removeListener(event_types.CHAT_CHANGED, chatChanged);
-	}
-}
-
-// This function is called when the extension settings are changed in the UI
-async function enableExtensionInput(event) {
+function enableExtension(event) {
 	const value = Boolean($(event.target).prop("checked"));
 	extensionSettings.enabled = value;
 	
-	log("enableExtension", extensionSettings.enabled);
-	await saveSettingsDebounced();
-	enableExtension();
+	log("enableExtension", value);
+	saveSettingsDebounced();
 }
 
 function enableDebugMode(event) {
@@ -67,29 +45,85 @@ function enableDebugMode(event) {
 	saveSettingsDebounced();
 }
 
-// This function is called when the button is clicked
+/**
+ * Makes a popup appear with setting's values.
+ */
 function displaySettings() {
-	// You can do whatever you want here
-	// Let's make a popup appear with the checked setting
 	toastr.info(`The extension is ${extensionSettings.enabled ? "active" : "not active"}`);
-	toastr.info(`Debug mode is ${extensionSettings.enabled ? "active" : "not active"}`);
+	toastr.info(`Debug mode is ${extensionSettings.debug ? "active" : "not active"}`);
 }
 
-// This function is called when the extension is loaded
-jQuery(async () => {
-	// This is an example of loading HTML from a file
-	const settingsHtml = await $.get(`${extensionFolderPath}/example.html`);
+/**
+ * Creates and insert any button provided by the extension.
+ */
+function loadQOLFeatures() {
+	if (!extensionSettings.enabled) return;
 
-	// Append settingsHtml to extensions_settings
-	// extension_settings and extensions_settings2 are the left and right columns of the settings menu
-	// Left should be extensions that deal with system functions and right should be visual/UI related
+	const $rightSendForm = document.getElementById("rightSendForm");
+	const $send_but = document.getElementById("send_but");
+	
+	const $regenerate_but = document.createElement("div");
+	$regenerate_but.id = "regenerate_but";
+	$regenerate_but.title = "Retry last message";
+	$regenerate_but.classList.add("fa-solid", "fa-repeat", "interactable");
+
+	$rightSendForm.insertBefore($regenerate_but, $send_but);
+	
+	log("loadQOLFeatures()", "regenerate_but:", $regenerate_but);
+}
+
+/**
+ * Hides the Continue button from the right side of the input area.
+ * @param {Boolean} [hide=true] -Whether or not to hide the retry button.
+ */
+function hideRegenerateButton(hide = true) {
+	if (!extensionSettings.enabled) return;
+
+	const $regenerate_but = document.getElementById("regenerate_but");
+	const display = hide ? "none" : "flex";
+
+	if ($regenerate_but)
+		$('#regenerate_but').css({ 'display': display });
+	else	console.error("Element with ID 'regenerate_but' not found.");
+}
+
+eventSource.on(event_types.GENERATION_STARTED, async (...args) => {
+	log("GENERATION_STARTED");
+	hideRegenerateButton();
+});
+
+eventSource.on(event_types.GENERATION_ENDED, async (...args) => {
+	log("GENERATION_ENDED");
+	hideRegenerateButton(false);
+});
+
+function triggerOptionRegenerate() {
+	if (!extensionSettings.enabled) return;
+	
+	const generationLocked = $('#send_but').css('display') !== 'flex';
+	log("GENERATION_LOCKED", generationLocked)
+	if (generationLocked) return;
+
+	const $option_regenerate = document.getElementById("option_regenerate");
+	$option_regenerate.click();
+	hideRegenerateButton();
+}
+
+jQuery(async () => {
+	const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
+
 	$("#extensions_settings").append(settingsHtml);
 
-	// These are examples of listening for events
-	$("#my_button").on("click", displaySettings);
-	$("#activate-extension").on("input", enableExtensionInput);
-	$("#activate-debug").on("input", enableDebugMode);
+	// Event Listeners for the extension HTML
+	$("#qol-check-configuration").on("click", displaySettings);
+	$("#qol-activate-extension").on("input", enableExtension);
+	$("#qol-activate-debug").on("input", enableDebugMode);
 
-	// Load settings when starting things up (if you have any)
-	loadSettings();
+	await loadSettings();
+	
+	// Add extension features
+	loadQOLFeatures();
+
+	// Custom Listeners
+	$("#regenerate_but").on("click", triggerOptionRegenerate);
 });
