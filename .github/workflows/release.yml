@@ -49,28 +49,13 @@ jobs:
       
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
-      - name: Bump version
-        run: |
-          version=${{ steps.determine_version.outputs.new_version }}
-          git config user.email "leandrotomasjofre@gmail.com"
-          git config user.name "Leandro Jofre"
-          git tag -a "v$(date +%Y%m%d%H%M%S)-${version}" -m "Version bump to ${version}"
-          git push origin --tags
-
       - name: Get PR details
         id: pr_details
-        uses: actions/github-script@v3
-        with:
-          script: |
-            const pr = await github.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-            });
-            core.setOutput("title", pr.data.title);
-            core.setOutput("user", pr.data.user);
-            core.setOutput("body", pr.data.body);
-            return pr.data;
+        run: |
+          pr=$(gh pr view ${{ github.event.pull_request.number }} --json title,author,body)
+          echo "title=$(echo $pr | jq -r .title)" >> $GITHUB_OUTPUT
+          echo "user=$(echo $pr | jq -r .author.login)" >> $GITHUB_OUTPUT
+          echo "body=$(echo $pr | jq -r .body)" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         id: create_release
@@ -78,12 +63,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.determine_version.outputs.new_version }}
-          release_name: SillyTavern-QOL ${{ steps.determine_version.outputs.new_version }}
+          tag_name: ${{ steps.determine_version.outputs.new_version }}
+          release_name: SillyTavern-QOL v${{ steps.determine_version.outputs.new_version }}
           body: |
            ## What's new in this release?
-           - **PR Title**: ${{ steps.pr_details.outputs.title }}
-           - **Merged by**: ${{ steps.pr_details.outputs.user.login }}
-           - **Changes**: ${{ steps.pr_details.outputs.body }}
+           - **PR Title**:\n\n ${{ steps.pr_details.outputs.title }}
+           - **Merged by**:\n\n ${{ steps.pr_details.outputs.user }}
+           - **Changes**:\n\n ${{ steps.pr_details.outputs.body }}
           draft: false
           prerelease: false

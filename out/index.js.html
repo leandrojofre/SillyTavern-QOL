@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: index.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: index.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>//You'll likely need to import extension_settings, getContext, and loadExtensionSettings from extensions.js
+import {extension_settings} from "../../../extensions.js";
+//You'll likely need to import some other functions from the main script
+import {eventSource, event_types, saveSettingsDebounced} from "../../../../script.js";
+
+
+// Keep track of where your extension is located, name should match repo name
+const extensionName = "SillyTavern-QOL";
+const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+const extensionSettings = extension_settings[extensionName];
+const defaultSettings = {
+	enabled: true,
+	debug: false
+};
+
+const log = (...msg) => {
+	if (!extensionSettings.debug || !extensionSettings.enabled) return;
+	console.log("[" + extensionName + "]", ...msg);
+};
+
+async function loadSettings() {
+	extension_settings[extensionName] = extension_settings[extensionName] || {};
+	if (Object.keys(extension_settings[extensionName]).length === 0) {
+		Object.assign(extension_settings[extensionName], defaultSettings);
+		await saveSettingsDebounced();
+	}
+
+	$("#activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
+	$("#activate-debug").prop("checked", extensionSettings.debug).trigger("input");
+}
+
+function enableExtension(event) {
+	const value = Boolean($(event.target).prop("checked"));
+	extensionSettings.enabled = value;
+	
+	log("enableExtension", value);
+	saveSettingsDebounced();
+}
+
+function enableDebugMode(event) {
+	const value = Boolean($(event.target).prop("checked"));
+	extensionSettings.debug = value;
+
+	log("enableDebugMode", extensionSettings.debug);
+	saveSettingsDebounced();
+}
+
+/**
+ * Makes a popup appear with setting's values.
+ */
+function displaySettings() {
+	toastr.info(`The extension is ${extensionSettings.enabled ? "active" : "not active"}`);
+	toastr.info(`Debug mode is ${extensionSettings.debug ? "active" : "not active"}`);
+}
+
+function triggerOptionRegenerate(event) {
+	if (!extensionSettings.enabled) return;
+
+	const regenerate_but = event.target;
+	const $option_regenerate = document.getElementById("option_regenerate");
+	regenerate_but.style.display = "none";
+	$option_regenerate.click();
+}
+
+/**
+ * Creates and insert any button/feature provided by the extension.
+ */
+function loadQOLFeatures() {
+	if (!extensionSettings.enabled) return;
+
+	const $rightSendForm = document.getElementById("rightSendForm");
+	const $send_but = document.getElementById("send_but");
+	
+	const $regenerate_but = document.createElement("div");
+	$regenerate_but.id = "regenerate_but";
+	$regenerate_but.title = "Retry last message";
+	$regenerate_but.classList.add("fa-solid", "fa-repeat", "interactable");
+
+	$rightSendForm.insertBefore($regenerate_but, $send_but);
+	
+	log("loadQOLFeatures()", "regenerate_but:", $regenerate_but);
+}
+
+/**
+ * Hides the Continue button from the right side of the input area.
+ * @param {Boolean} [hide=true] -Whether or not to hide the retry button.
+ */
+function hideRegenerateButton(hide = true) {
+	const $regenerate_but = document.getElementById("regenerate_but");
+	$regenerate_but.style.display = "none";
+}
+
+eventSource.on(event_types.MESSAGE_SENT, (...args) => {
+	if (!extensionSettings.enabled) return;
+	if (args[0] == undefined) return log("MESSAGE UNDEFINED");
+
+	log("MESSAGE_SENT", args);
+	hideRegenerateButton();
+});
+
+eventSource.on(event_types.MESSAGE_RECEIVED, (...args) => {
+	if (!extensionSettings.enabled) return;
+	if (args[0] == undefined) return log("MESSAGE UNDEFINED");
+
+	log("MESSAGE_RECEIVED", args);
+
+	const $regenerate_but = document.getElementById("regenerate_but");
+	$regenerate_but.style.display = "flex";
+});
+
+eventSource.on(event_types.GENERATION_STOPPED, (...args) => {
+	if (!extensionSettings.enabled) return;
+	if (args[0] == undefined) return log("MESSAGE UNDEFINED");
+
+	log("GENERATION_STOPPED", args);
+
+	const $regenerate_but = document.getElementById("regenerate_but");
+	$regenerate_but.style.display = "flex";
+});
+
+// This function is called when the extension is loaded
+jQuery(async () => {
+	// This is an example of loading HTML from a file
+	const settingsHtml = await $.get(`${extensionFolderPath}/example.html`);
+
+	// Append settingsHtml to extensions_settings
+	// extension_settings and extensions_settings2 are the left and right columns of the settings menu
+	// Left should be extensions that deal with system functions and right should be visual/UI related
+	$("#extensions_settings").append(settingsHtml);
+
+	// These are examples of listening for events
+	$("#my_button").on("click", displaySettings);
+	$("#activate-extension").on("input", enableExtension);
+	$("#activate-debug").on("input", enableDebugMode);
+
+	// Load settings when starting things up (if you have any)
+	await loadSettings();
+	
+	// Add extension features
+	loadQOLFeatures();
+
+	// Custom Listeners
+	$("#regenerate_but").on("click", triggerOptionRegenerate);
+});
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#displaySettings">displaySettings</a></li><li><a href="global.html#hideRegenerateButton">hideRegenerateButton</a></li><li><a href="global.html#loadQOLFeatures">loadQOLFeatures</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Thu Nov 28 2024 21:24:16 GMT-0300 (GMT-03:00)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

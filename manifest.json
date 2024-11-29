@@ -1,6 +1,6 @@
 {
     "display_name": "QOL",
-    "loading_order": 9,
+    "loading_order": 200,
     "requires": [],
     "optional": [],
     "js": "index.js",
