@@ -74,12 +74,10 @@ jobs:
           tag_name: ${{ steps.determine_version.outputs.new_version }}
           release_name: SillyTavern-QOL v${{ steps.determine_version.outputs.new_version }}
           body: |
-           ## What's new in this release?
            - **PR Title**:
             ${{ steps.pr_details.outputs.title }}
            - **Merged by**:
             ${{ steps.pr_details.outputs.user }}
-           - **Changes**:
             ${{ steps.pr_details.outputs.body }}
           draft: false
           prerelease: false
