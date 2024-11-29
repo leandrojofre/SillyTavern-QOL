@@ -51,18 +51,11 @@ jobs:
 
       - name: Get PR details
         id: pr_details
-        uses: actions/github-script@v3
-        with:
-          script: |
-            const pr = await github.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-            });
-            core.setOutput("title", pr.data.title);
-            core.setOutput("user", pr.data.user.login);
-            core.setOutput("body", pr.data.body);
-            return pr.data;
+        run: |
+          pr=$(gh pr view ${{ github.event.pull_request.number }} --json title,author,body)
+          echo "title=$(echo $pr | jq -r .title)" >> $GITHUB_OUTPUT
+          echo "user=$(echo $pr | jq -r .author.login)" >> $GITHUB_OUTPUT
+          echo "body=$(echo $pr | jq -r .body)" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         id: create_release
