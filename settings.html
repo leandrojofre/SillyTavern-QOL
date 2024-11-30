@@ -13,11 +13,15 @@ You might want to add additional HTML elements to ST. It's good practice to sepa
 			</div>
 
 			<div class="flex-container">
-				<input id="qol-activate-extension" type="checkbox" />
+				<input id="qol-activate-extension" qol-setting="enabled" type="checkbox" />
 				<label for="qol-activate-extension">Enable/Disable the extension</label>
 			</div>
 			<div class="flex-container">
-				<input id="qol-activate-debug" type="checkbox" />
+				<input id="qol-activate-quick-retry" qol-setting="features/quickRegenerate" type="checkbox" />
+				<label for="qol-activate-quick-retry">Quick "Regenerate" button</label>
+			</div>
+			<div class="flex-container">
+				<input id="qol-activate-debug" qol-setting="debug" type="checkbox" />
 				<label for="qol-activate-debug">Enable/Disable the debug console logs</label>
 			</div>
 

@@ -22,10 +22,11 @@ Paste this link into the Install Extension menu: https://github.com/leandrojofre
 
 ### Usage
 
-*WIP*: From the extension configuration menu, you can enable/disable each feature of the extension.
+### From the extension configuration menu, you can enable/disable each feature of the extension.
 
-![image](https://github.com/user-attachments/assets/085f7034-2d3c-4d09-9d92-6e835e85372c)
+![image](https://github.com/user-attachments/assets/5030d657-feae-499e-9e7b-e7c4dc3157c6)
 
 ## Support and Contributions
 
-Me: @leandrojofre - The GOAT ~~*Cannot configure a YAML file without making over 40 commits*~~
+- @leandrojofre (Me) - The GOAT ~~*Cannot configure a YAML file without making over 40 commits*~~
+- @city-unit - Creator of the [template](https://github.com/city-unit/st-extension-example) of this repo and the extension.
