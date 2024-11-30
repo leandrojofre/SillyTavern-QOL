@@ -8,11 +8,17 @@ const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 const extensionSettings = extension_settings[extensionName];
 const defaultSettings = {
 	enabled: true,
+	soundVolume: 1,
 	features: {
 		quickRegenerate: true,
+		playErrorSound: true,
 	},
 	debug: false
 };
+const audioGenerationError = new Audio();
+audioGenerationError.src = `${extensionFolderPath}/assets/audio/error-sound.mp3`;
+
+// * Debug methods
 
 const log = (...msg) => {
 	if (!extensionSettings.debug) return;
@@ -28,7 +34,10 @@ async function loadSettings() {
 		await saveSettingsDebounced();
 	}
 
-	if (Object.keys(extension_settings[extensionName]).length !== Object.keys(defaultSettings).length) {
+	if (
+		Object.keys(extension_settings[extensionName]).length !== Object.keys(defaultSettings).length ||
+		Object.keys(extension_settings[extensionName].features).length !== Object.keys(defaultSettings.features).length
+	) {
 		const extension_settings_old = {};
 		Object.assign(extension_settings_old, extension_settings[extensionName])
 
@@ -38,17 +47,26 @@ async function loadSettings() {
 		await saveSettingsDebounced();
 	}
 
+	if (extension_settings[extensionName].undefined) {
+		delete extension_settings[extensionName].undefined;
+		await saveSettingsDebounced();
+	}
+
 	$("#qol-activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
 	$("#qol-activate-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
+	$("#qol-activate-error-sound").prop("checked", extensionSettings.features.playErrorSound).trigger("input");
+	$("#qol-sound-volume").prop("value", extensionSettings.soundVolume).trigger("mouseup");
 	$("#qol-activate-debug").prop("checked", extensionSettings.debug).trigger("input");
 
 	log("loadSettings", extensionSettings);
 }
 
 /**	Makes a popup appear with setting's values.
- */
+*/
 function displaySettings() {
 	toastr.info(`Debug mode is ${extensionSettings.debug ? "active" : "not active"}`);
+	toastr.info(`Play error sound is ${extensionSettings.features.playErrorSound ? "active" : "not active"}`);
+	toastr.info(`Extension volume is ${extensionSettings.soundVolume}`);
 	toastr.info(`Quick regenerate is ${extensionSettings.features.quickRegenerate ? "active" : "not active"}`);
 	toastr.info(`The extension is ${extensionSettings.enabled ? "active" : "not active"}`);
 }
@@ -85,14 +103,43 @@ function settingsBooleanButton(event) {
 	saveSettingsDebounced();
 }
 
+function settingsNumberButton(event) {
+	const target = event.target;
+	const value = Number($(target).prop("value"));
+	const setting = target.getAttribute("qol-setting");
+	const callback = settingsCallbacks[setting.replace("features/", "")];
+
+	if (setting.includes("features/"))
+		extensionSettings.features[setting.replace("features/", "")] = value;
+	else extensionSettings[setting] = value;
+	
+	if (callback) callback();
+	
+	log("toggleSetting " + setting, value);
+	saveSettingsDebounced();
+}
+
 // * Extension methods
+
+/**
+	@param {Audio} [audio]
+	audio:
+	- The audio will not play if it is already playing.
+*/
+function playAudio(audio) {
+	if (audio.currentTime === 0 || audio.ended) {
+		audio.currentTime = 0;
+		audio.volume = extensionSettings.soundVolume;
+		audio.play();
+	}
+}
 
 /**	Hides the Continue button from the right side of the input area.
 	If the extension is disabled, "hideRegenerateButton" will always hide the button.
 	@param {Boolean} [hide=true]
 	hide:
 	- Whether or not to hide the retry button.
- */
+*/
 function hideRegenerateButton(hide = true) {
 	if (
 		!extensionSettings.enabled ||
@@ -118,7 +165,7 @@ function triggerOptionRegenerate() {
 }
 
 /**	Creates and insert any button provided by the extension.
- */
+*/
 function loadQOLFeatures() {
 	const $rightSendForm = document.getElementById("rightSendForm");
 	const $send_but = document.getElementById("send_but");
@@ -132,10 +179,52 @@ function loadQOLFeatures() {
 	
 	log("loadQOLFeatures()", "quickRegenerate");
 	hideRegenerateButton(!extensionSettings.features.quickRegenerate);
-		
 }
 
-// * Emitters Listeners
+// * Error Listeners
+
+/**	Modifies a function to wrap it in a function that first executes a callback and THEN the original function.
+	@param {Function} [originalFunction]
+	originalFunction:
+	- wrapMethod will not modify this method, it will only force it to execute extra code before its call.
+	@param {Function} [callback]
+	callback:
+	- Additional code to execute before the original method.
+	@returns Returns the original function, with the callback added.
+*/
+function wrapMethod(originalFunction, callback) {
+	return function (...args) {
+		if (callback) callback(args);
+		originalFunction.apply(this, args);
+	};
+}
+
+toastr.error = wrapMethod(toastr.error, (args) => {
+	if (
+		!extensionSettings.enabled ||
+		!extensionSettings.features.playErrorSound
+	) return;
+
+	playAudio(audioGenerationError);
+});
+console.log = wrapMethod(console.log, (args) => {
+	if (
+		!extensionSettings.enabled ||
+		!extensionSettings.features.playErrorSound
+	) return;
+
+	for (const arg of args) {
+		if (!arg.name?.includes("Error")) continue;
+		if (
+			arg.message?.includes("Request aborted") ||
+			arg.message?.includes("Failed to get task status") ||
+			arg.message?.includes("Horde generation failed")
+		)
+			playAudio(audioGenerationError);
+	}
+});
+
+// * Emitter Listeners
 
 eventSource.on(event_types.GENERATION_STARTED, async (...args) => {
 	log("GENERATION_STARTED", args);
@@ -158,6 +247,8 @@ jQuery(async () => {
 	$("#qol-check-configuration").on("click", displaySettings);
 	$("#qol-activate-extension").on("input", settingsBooleanButton);
 	$("#qol-activate-quick-retry").on("input", settingsBooleanButton);
+	$("#qol-sound-volume").on("mouseup", settingsNumberButton);
+	$("#qol-activate-error-sound").on("input", settingsBooleanButton);
 	$("#qol-activate-debug").on("input", settingsBooleanButton);
 
 	await loadSettings();
