@@ -24,7 +24,7 @@ Paste this link into the Install Extension menu: https://github.com/leandrojofre
 
 ### From the extension configuration menu, you can enable/disable each feature of the extension.
 
-![image](https://github.com/user-attachments/assets/5030d657-feae-499e-9e7b-e7c4dc3157c6)
+![image](https://github.com/user-attachments/assets/7472b115-a62e-49f6-8ab1-a07cbd769ba9)
 
 ## Support and Contributions
 
