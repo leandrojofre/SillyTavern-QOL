@@ -28,4 +28,5 @@ Paste this link into the Install Extension menu: https://github.com/leandrojofre
 
 ## Support and Contributions
 
-Me: @leandrojofre - The GOAT ~~*Cannot configure a YAML file without making over 40 commits*~~
+- @leandrojofre (Me) - The GOAT ~~*Cannot configure a YAML file without making over 40 commits*~~
+- @city-unit - Creator of the [template](https://github.com/city-unit/st-extension-example) of this repo and the extension.
