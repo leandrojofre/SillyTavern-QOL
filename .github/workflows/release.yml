@@ -60,10 +60,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          pr=$(gh pr view ${{ github.event.pull_request.number }} --json title,author,body)
+          pr=$(gh pr view ${{ github.event.pull_request.number }} --json title,author)
           echo "title=$(echo $pr | jq -r .title)" >> $GITHUB_OUTPUT
           echo "user=$(echo $pr | jq -r .author.login)" >> $GITHUB_OUTPUT
-          echo -e "body=$(echo $pr | jq -r .body | sed ':a;N;$!ba;s/\n/\\n/g')" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         id: create_release
@@ -74,10 +73,7 @@ jobs:
           tag_name: ${{ steps.determine_version.outputs.new_version }}
           release_name: SillyTavern-QOL v${{ steps.determine_version.outputs.new_version }}
           body: |
-           - **PR Title**:
-            ${{ steps.pr_details.outputs.title }}
-           - **Merged by**:
-            ${{ steps.pr_details.outputs.user }}
-            ${{ steps.pr_details.outputs.body }}
+           - **PR Title**: ${{ steps.pr_details.outputs.title }}
+           - **Merged by**: @${{ steps.pr_details.outputs.user }}
           draft: false
           prerelease: false
