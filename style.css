@@ -1,9 +1,9 @@
-div.flex-container.flex-column {
+#qol-settings-window div.flex-container.flex-column {
 	flex-direction: column;
 	align-items: normal;
 }
 
-div.flex-container {
+#qol-settings-window div.flex-container {
 	align-items: center;
 }
 
@@ -12,7 +12,7 @@ div.flex-container {
 	max-width: 70%;
 }
 
-.separator-bottom {
+#qol-settings-window  .separator-bottom {
 	border-bottom: 1px solid #2a2a2a;
 	padding-bottom: 1vh;
 	margin-bottom: 1vh;
