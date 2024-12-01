@@ -6,9 +6,10 @@ SillyTavern is an excellent application for running conversation chat AI models,
 ## Features
 
 For now, the added features are the following:
-- Add a quick access button to retry the last message, the same button that is usually accessed from the drop-down menu of the message input area. ![Captura de pantalla 2024-11-29 015518](https://github.com/user-attachments/assets/c71b42e1-cff7-491c-870e-c092d36015ac)
+- A quick access button to retry the last message, the same button that is usually accessed from the drop-down menu of the message input area. ![Captura de pantalla 2024-11-29 015518](https://github.com/user-attachments/assets/c71b42e1-cff7-491c-870e-c092d36015ac)
+- When generating a message returns an error, a sound will be played to inform you in case you have ST in the background.
 
-### Please, if you have any suggestions, do not hesitate to leave them. If you want to contribute, do not hesitate to fork the repository.
+#### Please, if you have any suggestions, do not hesitate to leave them. If you want to contribute, do not hesitate to fork the repository.
 
 ## Installation and Usage
 
