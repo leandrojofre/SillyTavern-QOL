@@ -231,10 +231,26 @@ eventSource.on(event_types.GENERATION_STARTED, async (...args) => {
 	hideRegenerateButton();
 });
 
-eventSource.on(event_types.GENERATION_ENDED, async (...args) => {
-	log("GENERATION_ENDED", args);
+function onInputUnlock(evName, ...args) {
+	log(evName, args);
 	hideRegenerateButton(false);
-});
+}
+
+eventSource.on(event_types.USER_MESSAGE_RENDERED, async (...args) =>
+	onInputUnlock("USER_MESSAGE_RENDERED", args)
+);
+
+eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, async (...args) =>
+	onInputUnlock("CHARACTER_MESSAGE_RENDERED", args)
+);
+
+eventSource.on(event_types.GENERATION_STOPPED, async (...args) =>
+	onInputUnlock("GENERATION_STOPPED", args)
+);
+
+eventSource.on(event_types.GENERATION_ENDED, async (...args) =>
+	onInputUnlock("GENERATION_ENDED", args)
+);
 
 // * Extension initializer
 
