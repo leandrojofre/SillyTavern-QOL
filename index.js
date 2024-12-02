@@ -15,6 +15,8 @@ const defaultSettings = {
 	},
 	debug: false
 };
+const originalConsoleLog = console.log;
+const originalToastrError = toastr.error;
 const audioGenerationError = new Audio();
 audioGenerationError.src = `${extensionFolderPath}/assets/audio/error-sound.mp3`;
 
@@ -77,7 +79,7 @@ const settingsCallbacks = {
 		settingsCallbacks.quickRegenerate(!$("#qol-activate-extension").prop("checked"));
 	},
 	
-	/**	Enables/Disables the quick regenerate button
+	/**	Enables/Disables the quick regenerate button.
 		@param {Boolean} [forceUnable=false]
 		forceUnable:
 		- If true, forces features.quickRegenerate to be disabled.
@@ -85,6 +87,35 @@ const settingsCallbacks = {
 	quickRegenerate: (forceUnable = false) => {
 		hideRegenerateButton(forceUnable || !$("#qol-activate-quick-retry").prop("checked"));
 	},
+
+	/**	Enable/Disable the message generation error sound. */
+	playErrorSound: () => {
+		if (
+			!extensionSettings.enabled ||
+			!extensionSettings.features.playErrorSound
+		) {
+			toastr.error = originalToastrError;
+			console.log = originalConsoleLog;
+			return;
+		}
+
+		toastr.error = wrapMethod(toastr.error, (args) =>
+			playAudio(audioGenerationError)
+		);
+		
+		console.log = wrapMethod(console.log, (args) => {
+			for (const arg of args) {
+				if (!arg?.name?.includes("Error")) continue;
+				if (
+					arg.message?.includes("Request aborted") ||
+					arg.message?.includes("Failed to get task status") ||
+					arg.message?.includes("Horde generation failed")
+				)
+					playAudio(audioGenerationError);
+			}
+		});
+	}
+
 }
 
 function settingsBooleanButton(event) {
@@ -121,6 +152,22 @@ function settingsNumberButton(event) {
 
 // * Extension methods
 
+/**	Modifies a function to wrap it in a function that first executes a callback and THEN the original function.
+	@param {Function} [originalFunction]
+	originalFunction:
+	- wrapMethod will not modify this method, it will only force it to execute extra code before its call.
+	@param {Function} [callback]
+	callback:
+	- Additional code to execute before the original method.
+	@returns Returns the original function, with the callback added.
+*/
+function wrapMethod(originalFunction, callback) {
+	return function (...args) {
+		callback(args);
+		originalFunction.apply(this, args);
+	};
+}
+
 /**
 	@param {Audio} [audio]
 	audio:
@@ -149,19 +196,21 @@ function hideRegenerateButton(hide = true) {
 		$('#regenerate_but').css({ 'display': 'none' });
 	else $('#regenerate_but').css({ 'display': 'flex' });
 	
-	log("hideRegenerateButton()", $('#send_but').css('display'));
+	log("hideRegenerateButton()", $('#regenerate_but').css('display'));
 }
 
 function triggerOptionRegenerate() {
 	if (!extensionSettings.enabled ||!extensionSettings.features.quickRegenerate) return;
 	
 	const generationLocked = $('#send_but').css('display') !== 'flex';
-	log("GENERATION_LOCKED", generationLocked)
-	if (generationLocked) return;
+	
+	if (generationLocked) return log("GENERATION_LOCKED", generationLocked);
 
 	const $option_regenerate = document.getElementById("option_regenerate");
 	$option_regenerate.click();
 	hideRegenerateButton();
+
+	log("triggerOptionRegenerate()");
 }
 
 /**	Creates and insert any button provided by the extension.
@@ -181,49 +230,6 @@ function loadQOLFeatures() {
 	hideRegenerateButton(!extensionSettings.features.quickRegenerate);
 }
 
-// * Error Listeners
-
-/**	Modifies a function to wrap it in a function that first executes a callback and THEN the original function.
-	@param {Function} [originalFunction]
-	originalFunction:
-	- wrapMethod will not modify this method, it will only force it to execute extra code before its call.
-	@param {Function} [callback]
-	callback:
-	- Additional code to execute before the original method.
-	@returns Returns the original function, with the callback added.
-*/
-function wrapMethod(originalFunction, callback) {
-	return function (...args) {
-		if (callback) callback(args);
-		originalFunction.apply(this, args);
-	};
-}
-
-toastr.error = wrapMethod(toastr.error, (args) => {
-	if (
-		!extensionSettings.enabled ||
-		!extensionSettings.features.playErrorSound
-	) return;
-
-	playAudio(audioGenerationError);
-});
-console.log = wrapMethod(console.log, (args) => {
-	if (
-		!extensionSettings.enabled ||
-		!extensionSettings.features.playErrorSound
-	) return;
-
-	for (const arg of args) {
-		if (!arg.name?.includes("Error")) continue;
-		if (
-			arg.message?.includes("Request aborted") ||
-			arg.message?.includes("Failed to get task status") ||
-			arg.message?.includes("Horde generation failed")
-		)
-			playAudio(audioGenerationError);
-	}
-});
-
 // * Emitter Listeners
 
 eventSource.on(event_types.GENERATION_STARTED, async (...args) => {
@@ -231,10 +237,26 @@ eventSource.on(event_types.GENERATION_STARTED, async (...args) => {
 	hideRegenerateButton();
 });
 
-eventSource.on(event_types.GENERATION_ENDED, async (...args) => {
-	log("GENERATION_ENDED", args);
+function onInputUnlock(evName, ...args) {
+	log(evName, args);
 	hideRegenerateButton(false);
-});
+}
+
+eventSource.on(event_types.USER_MESSAGE_RENDERED, async (...args) =>
+	onInputUnlock("USER_MESSAGE_RENDERED", args)
+);
+
+eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, async (...args) =>
+	onInputUnlock("CHARACTER_MESSAGE_RENDERED", args)
+);
+
+eventSource.on(event_types.GENERATION_STOPPED, async (...args) =>
+	onInputUnlock("GENERATION_STOPPED", args)
+);
+
+eventSource.on(event_types.GENERATION_ENDED, async (...args) =>
+	onInputUnlock("GENERATION_ENDED", args)
+);
 
 // * Extension initializer
 

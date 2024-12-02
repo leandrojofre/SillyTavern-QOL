@@ -12,28 +12,33 @@ You might want to add additional HTML elements to ST. It's good practice to sepa
 				<input id="qol-check-configuration" class="menu_button" type="submit" value="Check Configuration" />
 			</div>
 
-			<div class="flex-container">
+			<label class="flex-container">
 				<input id="qol-activate-extension" qol-setting="enabled" type="checkbox" />
-				<label for="qol-activate-extension">Enable/Disable the extension</label>
-			</div>
-			<div class="flex-container separator-bottom">
+				Enable/Disable the extension
+			</label>
+
+			<label class="flex-container separator-bottom">
 				<input id="qol-activate-quick-retry" qol-setting="features/quickRegenerate" type="checkbox" />
-				<label for="qol-activate-quick-retry">Quick "Regenerate" button</label>
-			</div>
+				Quick "Regenerate" button
+			</label>
+
 			<div class="flex-container flex-column separator-bottom">
-				<div class="flex-container" style="margin-bottom: 0.8vh;">
-					<label for="qol-sound-volume" style="padding-left: 1vh;">Volume:</label>
+				<label class="flex-container" style="padding-left: 1vh; margin-bottom: 0.8vh;">
+					Volume:
 					<input type="range" id="qol-sound-volume" min="0" max="1" step="0.01" value="1" qol-setting="soundVolume">
-				</div>
-				<div class="flex-container">
+				</label>
+
+				<label class="flex-container" title="IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, 'console.log' was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return 'console.log' to its original state." data-i18n="[title]IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, 'console.log' was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return 'console.log' to its original state.">
 					<input id="qol-activate-error-sound" qol-setting="features/playErrorSound" type="checkbox" />
-					<label for="qol-activate-error-sound">Play an error sound when a chat generation fails</label>
-				</div>
+					Play an error sound when a chat generation fails
+					<i class="right_menu_button fa-solid fa-circle-exclamation interactable" tabindex="0"></i>
+				</label>
 			</div>
-			<div class="flex-container">
+
+			<label class="flex-container">
 				<input id="qol-activate-debug" qol-setting="debug" type="checkbox" />
-				<label for="qol-activate-debug">Enable/Disable the debug console logs</label>
-			</div>
+				Enable/Disable the debug console logs
+			</label>
 
 			<hr class="sysHR" />
 		</div>
