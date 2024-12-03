@@ -12,6 +12,7 @@ const defaultSettings = {
 	features: {
 		quickRegenerate: true,
 		playErrorSound: true,
+		zoomCharacterAvatar: true
 	},
 	debug: false
 };
@@ -56,6 +57,7 @@ async function loadSettings() {
 
 	$("#qol-activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
 	$("#qol-activate-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
+	$("#qol-activate-zoom-char-avatar").prop("checked", extensionSettings.features.zoomCharacterAvatar).trigger("input");
 	$("#qol-activate-error-sound").prop("checked", extensionSettings.features.playErrorSound).trigger("input");
 	$("#qol-sound-volume").prop("value", extensionSettings.soundVolume).trigger("mouseup");
 	$("#qol-activate-debug").prop("checked", extensionSettings.debug).trigger("input");
@@ -77,6 +79,7 @@ const settingsCallbacks = {
 	/**	Enables/Disables the extension */
 	enabled: () => {
 		settingsCallbacks.quickRegenerate(!$("#qol-activate-extension").prop("checked"));
+		settingsCallbacks.zoomCharacterAvatar(!$("#qol-activate-extension").prop("checked"));
 	},
 	
 	/**	Enables/Disables the quick regenerate button.
@@ -114,8 +117,22 @@ const settingsCallbacks = {
 					playAudio(audioGenerationError);
 			}
 		});
-	}
+	},
 
+	/**	Enables/Disables the zoom in avatar feature.
+		@param {Boolean} [forceUnable=false]
+		forceUnable:
+		- If true, forces features.quickRegenerate to be disabled.
+	*/
+	zoomCharacterAvatar: (forceUnable = false) => {
+		if (!forceUnable && extensionSettings.features.zoomCharacterAvatar)
+			return zoomCharacterAvatar();
+
+		const closeZoomButton = $("#closeZoom")["0"];
+		
+		if (closeZoomButton)
+			closeZoomButton.click();
+	}
 }
 
 function settingsBooleanButton(event) {
@@ -211,7 +228,29 @@ function triggerRegenerate() {
 	$option_regenerate.click();
 	hideRegenerateButton();
 
-	log("triggerOptionRegenerate()");
+	log("triggerRegenerate()");
+}
+
+/**	Zooms in on the avatar of the character who is speaking. */
+function zoomCharacterAvatar() {
+	if (!extensionSettings.enabled || !extensionSettings.features.zoomCharacterAvatar) return;
+
+	const lastMes = $('#chat .mes').last()['0'];
+	const zoomedAvatar = $('div.zoomed_avatar.draggable').last()['0'];
+
+	if (!lastMes)
+		return log("CHAT EMPTY");
+
+	if (
+		zoomedAvatar &&
+		lastMes.getAttribute("ch_name") ===
+		zoomedAvatar.getAttribute("forchar").replace("%20", " ")
+	)
+		return log("CHARACTER ALREADY ZOOMED");
+	
+	lastMes.querySelector('.avatar').click();
+	
+	log("zoomCharacterAvatar()");
 }
 
 /**	Creates and insert any button provided by the extension. */
@@ -228,35 +267,49 @@ function loadQOLFeatures() {
 	
 	log("loadQOLFeatures()", "quickRegenerate");
 	hideRegenerateButton(!extensionSettings.features.quickRegenerate);
+	
+	log("loadQOLFeatures()", "quickRegenerate");
+	zoomCharacterAvatar();
 }
 
 // * Emitter Listeners
+
+eventSource.on(event_types.CHAT_CHANGED, async (...args) => {
+	log("CHAT_CHANGED", args);
+	zoomCharacterAvatar();
+});
 
 eventSource.on(event_types.GENERATION_STARTED, async (...args) => {
 	log("GENERATION_STARTED", args);
 	hideRegenerateButton();
 });
 
-function onInputUnlock(evName, ...args) {
-	log(evName, args);
+eventSource.on(event_types.USER_MESSAGE_RENDERED, async (...args) => {
+	log("USER_MESSAGE_RENDERED", args);
 	hideRegenerateButton(false);
-}
+	zoomCharacterAvatar();
+});
 
-eventSource.on(event_types.USER_MESSAGE_RENDERED, async (...args) =>
-	onInputUnlock("USER_MESSAGE_RENDERED", args)
-);
+eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, async (...args) => {
+	log("CHARACTER_MESSAGE_RENDERED", args);
+	hideRegenerateButton(false);
+	zoomCharacterAvatar();
+});
 
-eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, async (...args) =>
-	onInputUnlock("CHARACTER_MESSAGE_RENDERED", args)
-);
+eventSource.on(event_types.MESSAGE_DELETED, async (...args) => {
+	log("MESSAGE_DELETED", args);
+	zoomCharacterAvatar();
+});
 
-eventSource.on(event_types.GENERATION_STOPPED, async (...args) =>
-	onInputUnlock("GENERATION_STOPPED", args)
-);
+eventSource.on(event_types.GENERATION_STOPPED, async (...args) => {
+	log("GENERATION_STOPPED", args);
+	hideRegenerateButton(false);
+});
 
-eventSource.on(event_types.GENERATION_ENDED, async (...args) =>
-	onInputUnlock("GENERATION_ENDED", args)
-);
+eventSource.on(event_types.GENERATION_ENDED, async (...args) => {
+	log("GENERATION_ENDED", args);
+	hideRegenerateButton(false);
+});
 
 // * Extension initializer
 
@@ -270,6 +323,8 @@ jQuery(async () => {
 
 	$("#qol-activate-extension").on("input", settingsBooleanButton);
 	$("#qol-activate-quick-retry").on("input", settingsBooleanButton);
+	$("#qol-activate-zoom-char-avatar").on("input", settingsBooleanButton);
+
 	$("#qol-sound-volume").on("mouseup", settingsNumberButton);
 	$("#qol-activate-error-sound").on("input", settingsBooleanButton);
 
