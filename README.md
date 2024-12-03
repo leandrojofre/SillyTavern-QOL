@@ -8,6 +8,7 @@ SillyTavern is an excellent application for running conversation chat AI models,
 For now, the added features are the following:
 - A quick access button to retry the last message, the same button that is usually accessed from the drop-down menu of the message input area. ![Captura de pantalla 2024-11-29 015518](https://github.com/user-attachments/assets/c71b42e1-cff7-491c-870e-c092d36015ac)
 - When generating a message returns an error, a sound will be played to inform you in case you have ST in the background.
+- Allow the talking character's avatar to always have zoom applied, automatically changing the avatar when another character or the user speaks.
 
 #### Please, if you have any suggestions, do not hesitate to leave them. If you want to contribute, do not hesitate to fork the repository.
 
@@ -25,7 +26,7 @@ Paste this link into the Install Extension menu: https://github.com/leandrojofre
 
 ### From the extension configuration menu, you can enable/disable each feature of the extension.
 
-![image](https://github.com/user-attachments/assets/7472b115-a62e-49f6-8ab1-a07cbd769ba9)
+![Captura de pantalla 2024-12-03 160009](https://github.com/user-attachments/assets/a1211f20-df72-4762-a508-6c77b15f3624)
 
 ## Support and Contributions
 
