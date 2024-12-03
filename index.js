@@ -126,12 +126,8 @@ const settingsCallbacks = {
 	*/
 	zoomCharacterAvatar: (forceUnable = false) => {
 		if (!forceUnable && extensionSettings.features.zoomCharacterAvatar)
-			return zoomCharacterAvatar();
-
-		const closeZoomButton = $("#closeZoom")["0"];
-		
-		if (closeZoomButton)
-			closeZoomButton.click();
+			zoomCharacterAvatar();
+		else $("#closeZoom")["0"].click();
 	}
 }
 
@@ -227,7 +223,6 @@ function triggerRegenerate() {
 	const $option_regenerate = document.getElementById("option_regenerate");
 	$option_regenerate.click();
 	hideRegenerateButton();
-
 	log("triggerRegenerate()");
 }
 
@@ -235,16 +230,31 @@ function triggerRegenerate() {
 function zoomCharacterAvatar() {
 	if (!extensionSettings.enabled || !extensionSettings.features.zoomCharacterAvatar) return;
 
-	const lastMes = $('#chat .mes').last()['0'];
-	const zoomedAvatar = $('div.zoomed_avatar.draggable').last()['0'];
+	const lastMes = $('#chat .mes').last()[0];
+	const zoomedAvatar = $('div.zoomed_avatar.draggable').last()[0];
+	const closeZoomButton = $("#closeZoom")[0];
+	const expressionImg = $("#expression-image");
+		
+	if (
+		!expressionImg.hasClass("default") &&
+		expressionImg[0].src.match(/(http:\/\/127.0.0.(1|0):)\d+(\/.+)/gi)
+	) {
+		closeZoomButton.click();
+		return log("CHARACTER EXPRESSION ACTIVE");
+	}
 
 	if (!lastMes)
 		return log("CHAT EMPTY");
 
 	if (
 		zoomedAvatar &&
-		lastMes.getAttribute("ch_name") ===
-		zoomedAvatar.getAttribute("forchar").replace("%20", " ")
+		((
+			lastMes.getAttribute("ch_name").replace(/(%20|-|\d|\W)+/gi, " ").replace(/(\s)+/gi, "").toLowerCase() ===
+			zoomedAvatar.getAttribute("forchar").replace(/(%20|-|\d|\W)+/gi, " ").replace(/(\s)+/gi, "").toLowerCase()
+		) || (
+			lastMes.getAttribute("is_user") === "true" &&
+			zoomedAvatar.getAttribute("forchar").toLowerCase().includes("user")
+		))
 	)
 		return log("CHARACTER ALREADY ZOOMED");
 	
@@ -268,11 +278,16 @@ function loadQOLFeatures() {
 	log("loadQOLFeatures()", "quickRegenerate");
 	hideRegenerateButton(!extensionSettings.features.quickRegenerate);
 	
-	log("loadQOLFeatures()", "quickRegenerate");
+	log("loadQOLFeatures()", "zoomCharacterAvatar");
 	zoomCharacterAvatar();
 }
 
 // * Emitter Listeners
+
+eventSource.on(event_types.APP_READY, async (...args) => {
+	log("APP_READY", args);
+	loadQOLFeatures();
+});
 
 eventSource.on(event_types.CHAT_CHANGED, async (...args) => {
 	log("CHAT_CHANGED", args);
@@ -296,6 +311,11 @@ eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, async (...args) => {
 	zoomCharacterAvatar();
 });
 
+eventSource.on(event_types.MESSAGE_UPDATED, async (...args) => {
+	log("MESSAGE_UPDATED", args);
+	zoomCharacterAvatar();
+});
+
 eventSource.on(event_types.MESSAGE_DELETED, async (...args) => {
 	log("MESSAGE_DELETED", args);
 	zoomCharacterAvatar();
@@ -309,6 +329,11 @@ eventSource.on(event_types.GENERATION_STOPPED, async (...args) => {
 eventSource.on(event_types.GENERATION_ENDED, async (...args) => {
 	log("GENERATION_ENDED", args);
 	hideRegenerateButton(false);
+});
+
+eventSource.on(event_types.CHARACTER_EDITED, async (...args) => {
+	log("CHARACTER_EDITED", args);
+	zoomCharacterAvatar();
 });
 
 // * Extension initializer
@@ -331,9 +356,6 @@ jQuery(async () => {
 	$("#qol-activate-debug").on("input", settingsBooleanButton);
 
 	await loadSettings();
-	
-	// Add extension features
-	loadQOLFeatures();
 
 	// Custom Listeners
 	$("#regenerate_but").on("click", triggerRegenerate);
