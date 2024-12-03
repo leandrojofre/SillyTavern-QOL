@@ -20,7 +20,7 @@ const originalToastrError = toastr.error;
 const audioGenerationError = new Audio();
 audioGenerationError.src = `${extensionFolderPath}/assets/audio/error-sound.mp3`;
 
-// * Debug methods
+// * Debugs methods
 
 const log = (...msg) => {
 	if (!extensionSettings.debug) return;
@@ -63,14 +63,14 @@ async function loadSettings() {
 	log("loadSettings", extensionSettings);
 }
 
-/**	Makes a popup appear with setting's values.
-*/
+/**	Logs setting's values. */
 function displaySettings() {
-	toastr.info(`Debug mode is ${extensionSettings.debug ? "active" : "not active"}`);
-	toastr.info(`Play error sound is ${extensionSettings.features.playErrorSound ? "active" : "not active"}`);
-	toastr.info(`Extension volume is ${extensionSettings.soundVolume}`);
-	toastr.info(`Quick regenerate is ${extensionSettings.features.quickRegenerate ? "active" : "not active"}`);
-	toastr.info(`The extension is ${extensionSettings.enabled ? "active" : "not active"}`);
+	log(`The extension is ${extensionSettings.enabled ? "active" : "not active"}`);
+	log(`Quick regenerate is ${extensionSettings.features.quickRegenerate ? "active" : "not active"}`);
+	log(`Zoom char avatar is ${extensionSettings.features.zoomCharacterAvatar ? "active" : "not active"}`);
+	log(`Extension volume is ${extensionSettings.soundVolume}`);
+	log(`Play error sound is ${extensionSettings.features.playErrorSound ? "active" : "not active"}`);
+	log(`Debug mode is ${extensionSettings.debug ? "active" : "not active"}`);
 }
 
 const settingsCallbacks = {
@@ -85,7 +85,7 @@ const settingsCallbacks = {
 		- If true, forces features.quickRegenerate to be disabled.
 	*/
 	quickRegenerate: (forceUnable = false) => {
-		hideRegenerateButton(forceUnable || !$("#qol-activate-quick-retry").prop("checked"));
+		hideRegenerateButton(forceUnable || !extensionSettings.features.quickRegenerate);
 	},
 
 	/**	Enable/Disable the message generation error sound. */
@@ -199,8 +199,9 @@ function hideRegenerateButton(hide = true) {
 	log("hideRegenerateButton()", $('#regenerate_but').css('display'));
 }
 
-function triggerOptionRegenerate() {
-	if (!extensionSettings.enabled ||!extensionSettings.features.quickRegenerate) return;
+/** If the chat is unlocked, "regenerate" will be triggered. */
+function triggerRegenerate() {
+	if (!extensionSettings.enabled || !extensionSettings.features.quickRegenerate) return;
 	
 	const generationLocked = $('#send_but').css('display') !== 'flex';
 	
@@ -213,8 +214,7 @@ function triggerOptionRegenerate() {
 	log("triggerOptionRegenerate()");
 }
 
-/**	Creates and insert any button provided by the extension.
-*/
+/**	Creates and insert any button provided by the extension. */
 function loadQOLFeatures() {
 	const $rightSendForm = document.getElementById("rightSendForm");
 	const $send_but = document.getElementById("send_but");
@@ -267,10 +267,12 @@ jQuery(async () => {
 
 	// Event Listeners for the extension HTML
 	$("#qol-check-configuration").on("click", displaySettings);
+
 	$("#qol-activate-extension").on("input", settingsBooleanButton);
 	$("#qol-activate-quick-retry").on("input", settingsBooleanButton);
 	$("#qol-sound-volume").on("mouseup", settingsNumberButton);
 	$("#qol-activate-error-sound").on("input", settingsBooleanButton);
+
 	$("#qol-activate-debug").on("input", settingsBooleanButton);
 
 	await loadSettings();
@@ -279,5 +281,5 @@ jQuery(async () => {
 	loadQOLFeatures();
 
 	// Custom Listeners
-	$("#regenerate_but").on("click", triggerOptionRegenerate);
+	$("#regenerate_but").on("click", triggerRegenerate);
 });

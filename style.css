@@ -7,6 +7,7 @@
 #qol-settings-window div.flex-container,
 #qol-settings-window label.flex-container {
 	align-items: center;
+	flex-wrap: nowrap;
 }
 
 #qol-sound-volume {
