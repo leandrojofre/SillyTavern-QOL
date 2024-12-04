@@ -274,6 +274,7 @@ function loadQOLFeatures() {
 	$regenerate_but.classList.add("fa-solid", "fa-repeat", "interactable");
 
 	$rightSendForm.insertBefore($regenerate_but, $send_but);
+	$("#regenerate_but").on("click", triggerRegenerate);
 	
 	log("loadQOLFeatures()", "quickRegenerate");
 	hideRegenerateButton(!extensionSettings.features.quickRegenerate);
@@ -331,8 +332,8 @@ eventSource.on(event_types.GENERATION_ENDED, async (...args) => {
 	hideRegenerateButton(false);
 });
 
-eventSource.on(event_types.CHARACTER_EDITED, async (...args) => {
-	log("CHARACTER_EDITED", args);
+eventSource.on(event_types.SETTINGS_UPDATED, async (...args) => {
+	log("SETTINGS_UPDATED", args);
 	zoomCharacterAvatar();
 });
 
@@ -356,7 +357,4 @@ jQuery(async () => {
 	$("#qol-activate-debug").on("input", settingsBooleanButton);
 
 	await loadSettings();
-
-	// Custom Listeners
-	$("#regenerate_but").on("click", triggerRegenerate);
 });
