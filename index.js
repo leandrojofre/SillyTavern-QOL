@@ -228,15 +228,16 @@ function triggerRegenerate() {
 
 /**	Zooms in on the avatar of the character who is speaking. */
 function zoomCharacterAvatar() {
-	if (!extensionSettings.enabled || !extensionSettings.features.zoomCharacterAvatar) return;
+	if (	!extensionSettings.enabled ||
+		!extensionSettings.features.zoomCharacterAvatar
+	) return;
 
 	const lastMes = $('#chat .mes').last()[0];
 	const zoomedAvatar = $('div.zoomed_avatar.draggable').last()[0];
 	const closeZoomButton = $("#closeZoom")[0];
 	const expressionImg = $("#expression-image");
 		
-	if (
-		!expressionImg.hasClass("default") &&
+	if (	!expressionImg.hasClass("default") &&
 		expressionImg[0].src.match(/(http:\/\/127.0.0.(1|0):)\d+(\/.+)/gi)
 	) {
 		closeZoomButton.click();
@@ -246,11 +247,13 @@ function zoomCharacterAvatar() {
 	if (!lastMes)
 		return log("CHAT EMPTY");
 
-	if (
-		zoomedAvatar &&
+	if (	zoomedAvatar &&
 		((
-			lastMes.getAttribute("ch_name").replace(/(%20|-|\d|\W)+/gi, " ").replace(/(\s)+/gi, "").toLowerCase() ===
-			zoomedAvatar.getAttribute("forchar").replace(/(%20|-|\d|\W)+/gi, " ").replace(/(\s)+/gi, "").toLowerCase()
+			lastMes.getAttribute("ch_name").replace(/(%20|-|\d|\W|\s)+/gi, "").toLowerCase() ===
+			zoomedAvatar.getAttribute("forchar").replace(/(%20|-|\d|\W|\s)+/gi, "").toLowerCase()
+		) || (
+			lastMes.getAttribute("ch_name") === "SillyTavern System" &&
+			zoomedAvatar.getAttribute("forchar") === "img/five"
 		) || (
 			lastMes.getAttribute("is_user") === "true" &&
 			zoomedAvatar.getAttribute("forchar").toLowerCase().includes("user")
@@ -281,6 +284,11 @@ function loadQOLFeatures() {
 	
 	log("loadQOLFeatures()", "zoomCharacterAvatar");
 	zoomCharacterAvatar();
+
+	userAvatarBlockObserver.observe(document.getElementById("user_avatar_block"), {
+		subtree: true,
+		attributeFilter: ["class"],
+	});
 }
 
 // * Emitter Listeners
@@ -332,9 +340,12 @@ eventSource.on(event_types.GENERATION_ENDED, async (...args) => {
 	hideRegenerateButton(false);
 });
 
-eventSource.on(event_types.SETTINGS_UPDATED, async (...args) => {
-	log("SETTINGS_UPDATED", args);
-	zoomCharacterAvatar();
+// * Observers
+
+const userAvatarBlockObserver = new MutationObserver((mutations) =>{
+	// [mutation.type, mutation.target, mutation.attributeName]
+	for (const mutation of mutations)
+		if (mutation.target.classList.contains("selected")) zoomCharacterAvatar();
 });
 
 // * Extension initializer
