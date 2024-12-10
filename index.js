@@ -73,6 +73,7 @@ function displaySettings() {
 	log(`Extension volume is ${extensionSettings.soundVolume}`);
 	log(`Play error sound is ${extensionSettings.features.playErrorSound ? "active" : "not active"}`);
 	log(`Debug mode is ${extensionSettings.debug ? "active" : "not active"}`);
+	log(extensionSettings)
 }
 
 const settingsCallbacks = {
@@ -235,10 +236,11 @@ function zoomCharacterAvatar() {
 	const lastMes = $('#chat .mes').last()[0];
 	const zoomedAvatar = $('div.zoomed_avatar.draggable').last()[0];
 	const closeZoomButton = $("#closeZoom")[0];
-	const expressionImg = $("#expression-image");
-		
-	if (	!expressionImg.hasClass("default") &&
-		expressionImg[0].src.match(/(http:\/\/127.0.0.(1|0):)\d+(\/.+)/gi)
+	const expressionImg = $("#expression-image")[0];
+	
+	if (	expressionImg &&
+		!expressionImg.classList.contains("default") &&
+		expressionImg.src.match(/(http:\/\/127.0.0.(1|0):)\d+(\/.+)/gi)
 	) {
 		closeZoomButton.click();
 		return log("CHARACTER EXPRESSION ACTIVE");
