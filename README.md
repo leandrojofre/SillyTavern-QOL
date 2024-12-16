@@ -1,7 +1,6 @@
 # SillyTavern-QOL
 
-Hi, I'm tired of setting up the releases workflow from a YAML file, so I'll do a quick overview here.
-SillyTavern is an excellent application for running conversation chat AI models, whether for task or code assistants, roleplay, and a lot of other things; but we already know that. The idea of ​​this extension is to add small changes to facilitate the experience of using SillyTavern, either from quick access buttons in convenient areas, displaying useful information that is usually hidden; etc.
+SillyTavern is an excellent application for running conversation chat AI models, whether for task or code assistants, roleplay, and a lot of other things; but we already know that. The idea of ​​this extension is to add small changes to facilitate the experience of using SillyTavern, either from quick access buttons in convenient areas, displaying useful information that is usually hidden/hard to access; etc.
 
 ## Features
 
