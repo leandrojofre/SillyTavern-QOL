@@ -286,6 +286,7 @@ function zoomCharacterAvatar() {
 	log("zoomCharacterAvatar()");
 }
 
+/** Automatically cancels the generation of a message after user input */
 async function simpleUserInput() {
 	if (	!extensionSettings.enabled ||
 		!extensionSettings.features.simpleUserInput
