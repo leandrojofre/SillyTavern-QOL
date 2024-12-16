@@ -1,5 +1,6 @@
-import {eventSource, event_types, saveSettingsDebounced} from "../../../../script.js";
+import {eventSource, event_types, saveSettingsDebounced, stopGeneration} from "../../../../script.js";
 import {extension_settings} from "../../../extensions.js";
+import {group_activation_strategy, groups, is_group_generating, selected_group} from '../../../group-chats.js';
 
 // * Extension variables
 
@@ -12,7 +13,8 @@ const defaultSettings = {
 	features: {
 		quickRegenerate: true,
 		playErrorSound: true,
-		zoomCharacterAvatar: true
+		zoomCharacterAvatar: true,
+		simpleUserInput: false
 	},
 	debug: false
 };
@@ -20,6 +22,8 @@ const originalConsoleLog = console.log;
 const originalToastrError = toastr.error;
 const audioGenerationError = new Audio();
 audioGenerationError.src = `${extensionFolderPath}/assets/audio/error-sound.mp3`;
+
+let preventNextAbortSound = false;
 
 // * Debugs methods
 
@@ -32,20 +36,28 @@ const log = (...msg) => {
 
 async function loadSettings() {
 	extension_settings[extensionName] = extension_settings[extensionName] || {};
-	if (Object.keys(extension_settings[extensionName]).length === 0) {
+
+	const stExtensionSettingsKeys = Object.keys(extension_settings[extensionName]);
+	const stExtensionFeatSettingsKeys = Object.keys(extension_settings[extensionName].features);
+	const defExtensionSettingsKeys = Object.keys(defaultSettings);
+	const defExtensionFeatSettingsKeys = Object.keys(defaultSettings.features);
+
+	if (stExtensionSettingsKeys.length === 0) {
 		Object.assign(extension_settings[extensionName], defaultSettings);
 		await saveSettingsDebounced();
 	}
 
 	if (
-		Object.keys(extension_settings[extensionName]).length !== Object.keys(defaultSettings).length ||
-		Object.keys(extension_settings[extensionName].features).length !== Object.keys(defaultSettings.features).length
+		stExtensionSettingsKeys.length !== defExtensionSettingsKeys.length ||
+		stExtensionFeatSettingsKeys.length !== defExtensionFeatSettingsKeys.length
 	) {
-		const extension_settings_old = {};
-		Object.assign(extension_settings_old, extension_settings[extensionName])
-
-		extension_settings[extensionName] = {};
-		Object.assign(extension_settings[extensionName], defaultSettings, extension_settings_old);
+		for (const key of defExtensionSettingsKeys)
+			if (extension_settings[extensionName][key] || key === "features") continue;
+			else extension_settings[extensionName][key] = defaultSettings[key];
+		
+		for (const key of defExtensionFeatSettingsKeys)
+			if (extension_settings[extensionName].features[key]) continue;
+			else extension_settings[extensionName].features[key] = defaultSettings.features[key];
 
 		await saveSettingsDebounced();
 	}
@@ -58,8 +70,11 @@ async function loadSettings() {
 	$("#qol-activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
 	$("#qol-activate-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
 	$("#qol-activate-zoom-char-avatar").prop("checked", extensionSettings.features.zoomCharacterAvatar).trigger("input");
-	$("#qol-activate-error-sound").prop("checked", extensionSettings.features.playErrorSound).trigger("input");
+	$("#qol-activate-simple-user-input").prop("checked", extensionSettings.features.simpleUserInput).trigger("input");
+
 	$("#qol-sound-volume").prop("value", extensionSettings.soundVolume).trigger("mouseup");
+	$("#qol-activate-error-sound").prop("checked", extensionSettings.features.playErrorSound).trigger("input");
+
 	$("#qol-activate-debug").prop("checked", extensionSettings.debug).trigger("input");
 
 	log("loadSettings", extensionSettings);
@@ -70,10 +85,11 @@ function displaySettings() {
 	log(`The extension is ${extensionSettings.enabled ? "active" : "not active"}`);
 	log(`Quick regenerate is ${extensionSettings.features.quickRegenerate ? "active" : "not active"}`);
 	log(`Zoom char avatar is ${extensionSettings.features.zoomCharacterAvatar ? "active" : "not active"}`);
+	log(`Simple user input is ${extensionSettings.features.simpleUserInput ? "active" : "not active"}`);
 	log(`Extension volume is ${extensionSettings.soundVolume}`);
 	log(`Play error sound is ${extensionSettings.features.playErrorSound ? "active" : "not active"}`);
 	log(`Debug mode is ${extensionSettings.debug ? "active" : "not active"}`);
-	log(extensionSettings)
+	log(extensionSettings);
 }
 
 const settingsCallbacks = {
@@ -110,6 +126,8 @@ const settingsCallbacks = {
 		console.log = wrapMethod(console.log, (args) => {
 			for (const arg of args) {
 				if (!arg?.name?.includes("Error")) continue;
+				if (arg.message?.includes("Request aborted") && preventNextAbortSound)
+					return preventNextAbortSound = false;
 				if (
 					arg.message?.includes("Request aborted") ||
 					arg.message?.includes("Failed to get task status") ||
@@ -268,6 +286,25 @@ function zoomCharacterAvatar() {
 	log("zoomCharacterAvatar()");
 }
 
+/** Automatically cancels the generation of a message after user input */
+async function simpleUserInput() {
+	if (	!extensionSettings.enabled ||
+		!extensionSettings.features.simpleUserInput
+	) return;
+
+	const group = groups.find((x) => x.id === selected_group);
+
+	if (
+		is_group_generating &&
+		group.activation_strategy === group_activation_strategy.MANUAL
+	)
+		return log("group_activation_strategy.MANUAL");
+		
+	preventNextAbortSound = true;
+	await stopGeneration();
+	log("simpleUserInput()");
+}
+
 /**	Creates and insert any button provided by the extension. */
 function loadQOLFeatures() {
 	const $rightSendForm = document.getElementById("rightSendForm");
@@ -314,6 +351,7 @@ eventSource.on(event_types.USER_MESSAGE_RENDERED, async (...args) => {
 	log("USER_MESSAGE_RENDERED", args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
+	await simpleUserInput();
 });
 
 eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, async (...args) => {
@@ -363,6 +401,7 @@ jQuery(async () => {
 	$("#qol-activate-extension").on("input", settingsBooleanButton);
 	$("#qol-activate-quick-retry").on("input", settingsBooleanButton);
 	$("#qol-activate-zoom-char-avatar").on("input", settingsBooleanButton);
+	$("#qol-activate-simple-user-input").on("input", settingsBooleanButton);
 
 	$("#qol-sound-volume").on("mouseup", settingsNumberButton);
 	$("#qol-activate-error-sound").on("input", settingsBooleanButton);
