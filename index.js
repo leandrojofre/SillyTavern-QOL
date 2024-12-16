@@ -14,7 +14,7 @@ const defaultSettings = {
 		quickRegenerate: true,
 		playErrorSound: true,
 		zoomCharacterAvatar: true,
-		simpleUserInput: true
+		simpleUserInput: false
 	},
 	debug: false
 };
