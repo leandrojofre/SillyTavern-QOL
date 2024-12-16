@@ -36,20 +36,28 @@ const log = (...msg) => {
 
 async function loadSettings() {
 	extension_settings[extensionName] = extension_settings[extensionName] || {};
-	if (Object.keys(extension_settings[extensionName]).length === 0) {
+
+	const stExtensionSettingsKeys = Object.keys(extension_settings[extensionName]);
+	const stExtensionFeatSettingsKeys = Object.keys(extension_settings[extensionName].features);
+	const defExtensionSettingsKeys = Object.keys(defaultSettings);
+	const defExtensionFeatSettingsKeys = Object.keys(defaultSettings.features);
+
+	if (stExtensionSettingsKeys.length === 0) {
 		Object.assign(extension_settings[extensionName], defaultSettings);
 		await saveSettingsDebounced();
 	}
 
 	if (
-		Object.keys(extension_settings[extensionName]).length !== Object.keys(defaultSettings).length ||
-		Object.keys(extension_settings[extensionName].features).length !== Object.keys(defaultSettings.features).length
+		stExtensionSettingsKeys.length !== defExtensionSettingsKeys.length ||
+		stExtensionFeatSettingsKeys.length !== defExtensionFeatSettingsKeys.length
 	) {
-		const extension_settings_old = {};
-		Object.assign(extension_settings_old, extension_settings[extensionName])
-
-		extension_settings[extensionName] = {};
-		Object.assign(extension_settings[extensionName], defaultSettings, extension_settings_old);
+		for (const key of defExtensionSettingsKeys)
+			if (extension_settings[extensionName][key] || key === "features") continue;
+			else extension_settings[extensionName][key] = defaultSettings[key];
+		
+		for (const key of defExtensionFeatSettingsKeys)
+			if (extension_settings[extensionName].features[key]) continue;
+			else extension_settings[extensionName].features[key] = defaultSettings.features[key];
 
 		await saveSettingsDebounced();
 	}
