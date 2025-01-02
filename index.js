@@ -21,6 +21,7 @@ const defaultSettings = {
 const originalConsoleLog = console.log;
 const originalToastrError = toastr.error;
 const audioGenerationError = new Audio();
+const context = SillyTavern.getContext();
 audioGenerationError.src = `${extensionFolderPath}/assets/audio/error-sound.mp3`;
 
 let preventNextAbortSound = false;
@@ -34,39 +35,28 @@ const log = (...msg) => {
 
 // * Methods in charge of controlling the extension settings
 
-async function loadSettings() {
-	extension_settings[extensionName] = extension_settings[extensionName] || {};
+async function loadHTMLSettings() {
+	const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
+	
+	$("#extensions_settings").append(settingsHtml);
 
-	const stExtensionSettingsKeys = Object.keys(extension_settings[extensionName]);
-	const stExtensionFeatSettingsKeys = Object.keys(extension_settings[extensionName].features);
-	const defExtensionSettingsKeys = Object.keys(defaultSettings);
-	const defExtensionFeatSettingsKeys = Object.keys(defaultSettings.features);
+	// Event Listeners for the extension HTML
+	$("#qol-check-configuration").on("click", displaySettings);
 
-	if (stExtensionSettingsKeys.length === 0) {
-		Object.assign(extension_settings[extensionName], defaultSettings);
-		await saveSettingsDebounced();
-	}
+	$("#qol-activate-extension").on("input", settingsBooleanButton);
+	$("#qol-activate-quick-retry").on("input", settingsBooleanButton);
+	$("#qol-activate-zoom-char-avatar").on("input", settingsBooleanButton);
+	$("#qol-activate-simple-user-input").on("input", settingsBooleanButton);
 
-	if (
-		stExtensionSettingsKeys.length !== defExtensionSettingsKeys.length ||
-		stExtensionFeatSettingsKeys.length !== defExtensionFeatSettingsKeys.length
-	) {
-		for (const key of defExtensionSettingsKeys)
-			if (extension_settings[extensionName][key] || key === "features") continue;
-			else extension_settings[extensionName][key] = defaultSettings[key];
-		
-		for (const key of defExtensionFeatSettingsKeys)
-			if (extension_settings[extensionName].features[key]) continue;
-			else extension_settings[extensionName].features[key] = defaultSettings.features[key];
+	$("#qol-sound-volume").on("mouseup", settingsNumberButton);
+	$("#qol-activate-error-sound").on("input", settingsBooleanButton);
 
-		await saveSettingsDebounced();
-	}
+	$("#qol-activate-debug").on("input", settingsBooleanButton);
 
-	if (extension_settings[extensionName].undefined) {
-		delete extension_settings[extensionName].undefined;
-		await saveSettingsDebounced();
-	}
+	log("loadHTMLSettings");
+}
 
+function setSettings() {
 	$("#qol-activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
 	$("#qol-activate-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
 	$("#qol-activate-zoom-char-avatar").prop("checked", extensionSettings.features.zoomCharacterAvatar).trigger("input");
@@ -77,7 +67,7 @@ async function loadSettings() {
 
 	$("#qol-activate-debug").prop("checked", extensionSettings.debug).trigger("input");
 
-	log("loadSettings", extensionSettings);
+	log("setSettings", extensionSettings);
 }
 
 /**	Logs setting's values. */
@@ -332,11 +322,6 @@ function loadQOLFeatures() {
 
 // * Emitter Listeners
 
-eventSource.on(event_types.APP_READY, async (...args) => {
-	log("APP_READY", args);
-	loadQOLFeatures();
-});
-
 eventSource.on(event_types.CHAT_CHANGED, async (...args) => {
 	log("CHAT_CHANGED", args);
 	zoomCharacterAvatar();
@@ -388,25 +373,22 @@ const userAvatarBlockObserver = new MutationObserver((mutations) =>{
 		if (mutation.target.classList.contains("selected")) zoomCharacterAvatar();
 });
 
-// * Extension initializer
+// * Initialize Extension
 
-jQuery(async () => {
-	const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
+(async function initExtension() {
 
-	$("#extensions_settings").append(settingsHtml);
+	if (!context.extensionSettings[extensionName]) {
+	    context.extensionSettings[extensionName] = structuredClone(defaultSettings);
+	}
+ 
+	for (const key of Object.keys(defaultSettings)) {
+	    if (context.extensionSettings[extensionName][key] === undefined) {
+		   context.extensionSettings[extensionName][key] = defaultSettings[key];
+	    }
+	}
 
-	// Event Listeners for the extension HTML
-	$("#qol-check-configuration").on("click", displaySettings);
+	await loadHTMLSettings();
+	setSettings();
+	loadQOLFeatures();
 
-	$("#qol-activate-extension").on("input", settingsBooleanButton);
-	$("#qol-activate-quick-retry").on("input", settingsBooleanButton);
-	$("#qol-activate-zoom-char-avatar").on("input", settingsBooleanButton);
-	$("#qol-activate-simple-user-input").on("input", settingsBooleanButton);
-
-	$("#qol-sound-volume").on("mouseup", settingsNumberButton);
-	$("#qol-activate-error-sound").on("input", settingsBooleanButton);
-
-	$("#qol-activate-debug").on("input", settingsBooleanButton);
-
-	await loadSettings();
-});
+})();
