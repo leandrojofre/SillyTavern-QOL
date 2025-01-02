@@ -386,6 +386,12 @@ const userAvatarBlockObserver = new MutationObserver((mutations) =>{
 		   context.extensionSettings[extensionName][key] = defaultSettings[key];
 	    }
 	}
+ 
+	for (const key of Object.keys(defaultSettings.features)) {
+	    if (context.extensionSettings[extensionName].features[key] === undefined) {
+		   context.extensionSettings[extensionName].features[key] = defaultSettings.features[key];
+	    }
+	}
 
 	await loadHTMLSettings();
 	setSettings();
