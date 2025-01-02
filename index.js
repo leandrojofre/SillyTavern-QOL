@@ -322,11 +322,6 @@ function loadQOLFeatures() {
 
 // * Emitter Listeners
 
-eventSource.on(event_types.APP_READY, async (...args) => {
-	log("APP_READY", args);
-	loadQOLFeatures();
-});
-
 eventSource.on(event_types.CHAT_CHANGED, async (...args) => {
 	log("CHAT_CHANGED", args);
 	zoomCharacterAvatar();
@@ -394,5 +389,6 @@ const userAvatarBlockObserver = new MutationObserver((mutations) =>{
 
 	await loadHTMLSettings();
 	setSettings();
+	loadQOLFeatures();
 
 })();
