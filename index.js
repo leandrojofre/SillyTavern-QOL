@@ -1,4 +1,4 @@
-import {eventSource, event_types, saveSettingsDebounced, stopGeneration} from "../../../../script.js";
+import {eventSource, event_types, is_send_press, saveSettingsDebounced, stopGeneration} from "../../../../script.js";
 import {extension_settings} from "../../../extensions.js";
 import {group_activation_strategy, groups, is_group_generating, selected_group} from '../../../group-chats.js';
 
@@ -12,6 +12,7 @@ const defaultSettings = {
 	soundVolume: 1,
 	features: {
 		quickRegenerate: true,
+		quickRegenerateAutoHide: false,
 		playErrorSound: true,
 		zoomCharacterAvatar: true,
 		simpleUserInput: false
@@ -44,9 +45,11 @@ async function loadHTMLSettings() {
 	$("#qol-check-configuration").on("click", displaySettings);
 
 	$("#qol-activate-extension").on("input", settingsBooleanButton);
-	$("#qol-activate-quick-retry").on("input", settingsBooleanButton);
 	$("#qol-activate-zoom-char-avatar").on("input", settingsBooleanButton);
 	$("#qol-activate-simple-user-input").on("input", settingsBooleanButton);
+	
+	$("#qol-activate-quick-retry").on("input", settingsBooleanButton);
+	$("#qol-activate-quick-retry-autohide").on("input", settingsBooleanButton);
 
 	$("#qol-sound-volume").on("mouseup", settingsNumberButton);
 	$("#qol-activate-error-sound").on("input", settingsBooleanButton);
@@ -58,10 +61,12 @@ async function loadHTMLSettings() {
 
 function setSettings() {
 	$("#qol-activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
-	$("#qol-activate-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
 	$("#qol-activate-zoom-char-avatar").prop("checked", extensionSettings.features.zoomCharacterAvatar).trigger("input");
 	$("#qol-activate-simple-user-input").prop("checked", extensionSettings.features.simpleUserInput).trigger("input");
-
+	
+	$("#qol-activate-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
+	$("#qol-activate-quick-retry-autohide").prop("checked", extensionSettings.features.quickRegenerateAutoHide).trigger("input");
+	
 	$("#qol-sound-volume").prop("value", extensionSettings.soundVolume).trigger("mouseup");
 	$("#qol-activate-error-sound").prop("checked", extensionSettings.features.playErrorSound).trigger("input");
 
@@ -74,6 +79,7 @@ function setSettings() {
 function displaySettings() {
 	log(`The extension is ${extensionSettings.enabled ? "active" : "not active"}`);
 	log(`Quick regenerate is ${extensionSettings.features.quickRegenerate ? "active" : "not active"}`);
+	log(`Auto hide quick regenerate button is ${extensionSettings.features.quickRegenerateAutoHide ? "active" : "not active"}`);
 	log(`Zoom char avatar is ${extensionSettings.features.zoomCharacterAvatar ? "active" : "not active"}`);
 	log(`Simple user input is ${extensionSettings.features.simpleUserInput ? "active" : "not active"}`);
 	log(`Extension volume is ${extensionSettings.soundVolume}`);
@@ -211,6 +217,12 @@ function playAudio(audio) {
 */
 function hideRegenerateButton(hide = true) {
 	if (
+		extensionSettings.enabled &&
+		extensionSettings.features.quickRegenerateAutoHide
+	)
+		hide = false;
+
+	if (
 		!extensionSettings.enabled ||
 		!extensionSettings.features.quickRegenerate ||
 		hide
@@ -224,10 +236,7 @@ function hideRegenerateButton(hide = true) {
 /** If the chat is unlocked, "regenerate" will be triggered. */
 function triggerRegenerate() {
 	if (!extensionSettings.enabled || !extensionSettings.features.quickRegenerate) return;
-	
-	const generationLocked = $('#send_but').css('display') !== 'flex';
-	
-	if (generationLocked) return log("GENERATION_LOCKED", generationLocked);
+	if (is_send_press) return log("GENERATION_LOCKED", "is_send_press:", is_send_press);
 
 	const $option_regenerate = document.getElementById("option_regenerate");
 	$option_regenerate.click();
@@ -324,6 +333,7 @@ function loadQOLFeatures() {
 
 eventSource.on(event_types.CHAT_CHANGED, async (...args) => {
 	log("CHAT_CHANGED", args);
+	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 });
 
@@ -348,6 +358,11 @@ eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, async (...args) => {
 eventSource.on(event_types.MESSAGE_UPDATED, async (...args) => {
 	log("MESSAGE_UPDATED", args);
 	zoomCharacterAvatar();
+});
+
+eventSource.on(event_types.MESSAGE_SWIPED, async (...args) => {
+	log("MESSAGE_SWIPED", args);
+	hideRegenerateButton(false);
 });
 
 eventSource.on(event_types.MESSAGE_DELETED, async (...args) => {
@@ -384,6 +399,12 @@ const userAvatarBlockObserver = new MutationObserver((mutations) =>{
 	for (const key of Object.keys(defaultSettings)) {
 	    if (context.extensionSettings[extensionName][key] === undefined) {
 		   context.extensionSettings[extensionName][key] = defaultSettings[key];
+	    }
+	}
+ 
+	for (const key of Object.keys(defaultSettings.features)) {
+	    if (context.extensionSettings[extensionName].features[key] === undefined) {
+		   context.extensionSettings[extensionName].features[key] = defaultSettings.features[key];
 	    }
 	}
 
