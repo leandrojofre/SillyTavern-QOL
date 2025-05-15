@@ -38,7 +38,7 @@ const log = (...msg) => {
 
 async function loadHTMLSettings() {
 	const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
-	
+
 	$("#extensions_settings").append(settingsHtml);
 
 	// Event Listeners for the extension HTML
@@ -47,7 +47,7 @@ async function loadHTMLSettings() {
 	$("#qol-activate-extension").on("input", settingsBooleanButton);
 	$("#qol-activate-zoom-char-avatar").on("input", settingsBooleanButton);
 	$("#qol-activate-simple-user-input").on("input", settingsBooleanButton);
-	
+
 	$("#qol-activate-quick-retry").on("input", settingsBooleanButton);
 	$("#qol-activate-quick-retry-autohide").on("input", settingsBooleanButton);
 
@@ -63,10 +63,10 @@ function setSettings() {
 	$("#qol-activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
 	$("#qol-activate-zoom-char-avatar").prop("checked", extensionSettings.features.zoomCharacterAvatar).trigger("input");
 	$("#qol-activate-simple-user-input").prop("checked", extensionSettings.features.simpleUserInput).trigger("input");
-	
+
 	$("#qol-activate-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
 	$("#qol-activate-quick-retry-autohide").prop("checked", extensionSettings.features.quickRegenerateAutoHide).trigger("input");
-	
+
 	$("#qol-sound-volume").prop("value", extensionSettings.soundVolume).trigger("mouseup");
 	$("#qol-activate-error-sound").prop("checked", extensionSettings.features.playErrorSound).trigger("input");
 
@@ -94,7 +94,7 @@ const settingsCallbacks = {
 		settingsCallbacks.quickRegenerate(!$("#qol-activate-extension").prop("checked"));
 		settingsCallbacks.zoomCharacterAvatar(!$("#qol-activate-extension").prop("checked"));
 	},
-	
+
 	/**	Enables/Disables the quick regenerate button.
 		@param {Boolean} [forceUnable=false]
 		forceUnable:
@@ -118,7 +118,7 @@ const settingsCallbacks = {
 		toastr.error = wrapMethod(toastr.error, (args) =>
 			playAudio(audioGenerationError)
 		);
-		
+
 		console.log = wrapMethod(console.log, (args) => {
 			for (const arg of args) {
 				if (!arg?.name?.includes("Error")) continue;
@@ -155,9 +155,9 @@ function settingsBooleanButton(event) {
 	if (setting.includes("features/"))
 		extensionSettings.features[setting.replace("features/", "")] = value;
 	else extensionSettings[setting] = value;
-	
+
 	if (callback) callback();
-	
+
 	log("toggleSetting " + setting, value);
 	saveSettingsDebounced();
 }
@@ -171,9 +171,9 @@ function settingsNumberButton(event) {
 	if (setting.includes("features/"))
 		extensionSettings.features[setting.replace("features/", "")] = value;
 	else extensionSettings[setting] = value;
-	
+
 	if (callback) callback();
-	
+
 	log("toggleSetting " + setting, value);
 	saveSettingsDebounced();
 }
@@ -229,7 +229,7 @@ function hideRegenerateButton(hide = true) {
 	)
 		$('#regenerate_but').css({ 'display': 'none' });
 	else $('#regenerate_but').css({ 'display': 'flex' });
-	
+
 	log("hideRegenerateButton()", $('#regenerate_but').css('display'));
 }
 
@@ -246,7 +246,7 @@ function triggerRegenerate() {
 
 /**	Zooms in on the avatar of the character who is speaking. */
 function zoomCharacterAvatar() {
-	if (	!extensionSettings.enabled ||
+	if (!extensionSettings.enabled ||
 		!extensionSettings.features.zoomCharacterAvatar
 	) return;
 
@@ -254,7 +254,7 @@ function zoomCharacterAvatar() {
 	const zoomedAvatar = $('div.zoomed_avatar.draggable').last()[0];
 	const closeZoomButton = $("#closeZoom")[0];
 	const expressionImg = $("#expression-image")[0];
-	
+
 	if (	expressionImg &&
 		!expressionImg.classList.contains("default") &&
 		expressionImg.src.match(/(http:\/\/127.0.0.(1|0):)\d+(\/.+)/gi)
@@ -279,15 +279,15 @@ function zoomCharacterAvatar() {
 		))
 	)
 		return log("CHARACTER ALREADY ZOOMED");
-	
+
 	lastMes.querySelector('.avatar').click();
-	
+
 	log("zoomCharacterAvatar()");
 }
 
 /** Automatically cancels the generation of a message after user input */
 async function simpleUserInput() {
-	if (	!extensionSettings.enabled ||
+	if (!extensionSettings.enabled ||
 		!extensionSettings.features.simpleUserInput
 	) return;
 
@@ -298,17 +298,17 @@ async function simpleUserInput() {
 		group.activation_strategy === group_activation_strategy.MANUAL
 	)
 		return log("group_activation_strategy.MANUAL");
-		
+
 	preventNextAbortSound = true;
 	await stopGeneration();
-	log("simpleUserInput()");
+	log("simpleUserInput(): preventNextAbortSound ", preventNextAbortSound);
 }
 
 /**	Creates and insert any button provided by the extension. */
 function loadQOLFeatures() {
 	const $rightSendForm = document.getElementById("rightSendForm");
 	const $send_but = document.getElementById("send_but");
-	
+
 	const $regenerate_but = document.createElement("div");
 	$regenerate_but.id = "regenerate_but";
 	$regenerate_but.title = "Retry last message";
@@ -316,10 +316,10 @@ function loadQOLFeatures() {
 
 	$rightSendForm.insertBefore($regenerate_but, $send_but);
 	$("#regenerate_but").on("click", triggerRegenerate);
-	
+
 	log("loadQOLFeatures()", "quickRegenerate");
 	hideRegenerateButton(!extensionSettings.features.quickRegenerate);
-	
+
 	log("loadQOLFeatures()", "zoomCharacterAvatar");
 	zoomCharacterAvatar();
 
@@ -395,13 +395,13 @@ const userAvatarBlockObserver = new MutationObserver((mutations) =>{
 	if (!context.extensionSettings[extensionName]) {
 	    context.extensionSettings[extensionName] = structuredClone(defaultSettings);
 	}
- 
+
 	for (const key of Object.keys(defaultSettings)) {
 	    if (context.extensionSettings[extensionName][key] === undefined) {
 		   context.extensionSettings[extensionName][key] = defaultSettings[key];
 	    }
 	}
- 
+
 	for (const key of Object.keys(defaultSettings.features)) {
 	    if (context.extensionSettings[extensionName].features[key] === undefined) {
 		   context.extensionSettings[extensionName].features[key] = defaultSettings.features[key];
