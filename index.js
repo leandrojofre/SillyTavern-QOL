@@ -255,16 +255,12 @@ function zoomCharacterAvatar() {
 	const closeZoomButton = $("#closeZoom")[0];
 	const expressionImg = $("#expression-image")[0];
 
-	if (	expressionImg &&
-		!expressionImg.classList.contains("default") &&
-		expressionImg.src.match(/(http:\/\/127.0.0.(1|0):)\d+(\/.+)/gi)
-	) {
+	if (expressionImg && !expressionImg.classList.contains("default") && expressionImg.src.match(/(http:\/\/127.0.0.(1|0):)\d+(\/.+)/gi)) {
 		closeZoomButton.click();
 		return log("CHARACTER EXPRESSION ACTIVE");
 	}
 
-	if (!lastMes)
-		return log("CHAT EMPTY");
+	if (!lastMes) return log("CHAT EMPTY");
 
 	if (	zoomedAvatar &&
 		((
@@ -306,6 +302,7 @@ async function simpleUserInput() {
 
 /**	Creates and insert any button provided by the extension. */
 function loadQOLFeatures() {
+    // Quick Regenerate
 	const $rightSendForm = document.getElementById("rightSendForm");
 	const $send_but = document.getElementById("send_but");
 
@@ -320,6 +317,7 @@ function loadQOLFeatures() {
 	log("loadQOLFeatures()", "quickRegenerate");
 	hideRegenerateButton(!extensionSettings.features.quickRegenerate);
 
+    // Auto zoom last message Avatar
 	log("loadQOLFeatures()", "zoomCharacterAvatar");
 	zoomCharacterAvatar();
 
@@ -411,5 +409,4 @@ const userAvatarBlockObserver = new MutationObserver((mutations) =>{
 	await loadHTMLSettings();
 	setSettings();
 	loadQOLFeatures();
-
 })();
