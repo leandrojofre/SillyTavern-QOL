@@ -1,12 +1,10 @@
-<!--
-You might want to add additional HTML elements to ST. It's good practice to separate it out from your code
--->
-<div class="example-extension-settings">
+<div class="qol-extension-window">
 	<div class="inline-drawer">
 		<div class="inline-drawer-toggle inline-drawer-header">
 			<b>QOL</b>
 			<div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
 		</div>
+
 		<div id="qol-settings-window" class="inline-drawer-content" style="padding: 0.5vh;">
 
 			<div class="flex-container flex-column separator-bottom">
@@ -25,6 +23,12 @@ You might want to add additional HTML elements to ST. It's good practice to sepa
 				<label class="flex-container">
 					<input id="qol-activate-simple-user-input" qol-setting="features/simpleUserInput" type="checkbox" />
 					When sending messages, the automatic generation of a response is canceled
+				</label>
+
+				<label class="flex-container" title="Trigger a message to generate the list, it will be displayed in the left side panel." data-i18n="[title]Trigger a message to generate the list, it will be displayed in the left side panel.">
+					<input id="qol-show-activated-wi-entries" qol-setting="features/showActivatedWiEntries" type="checkbox" />
+					Show WI entries activated in the last generation
+					<i class="right_menu_button fa-solid fa-circle-exclamation interactable" tabindex="0"></i>
 				</label>
 			</div>
 
@@ -70,8 +74,6 @@ You might want to add additional HTML elements to ST. It's good practice to sepa
 					Enable/Disable the debug console logs
 				</label>
 			</div>
-
-			<hr class="sysHR" />
 		</div>
 	</div>
 </div>
