@@ -1,8 +1,29 @@
-import {eventSource, event_types, is_send_press, saveSettingsDebounced, stopGeneration} from "../../../../script.js";
-import {extension_settings} from "../../../extensions.js";
-import {group_activation_strategy, groups, is_group_generating, selected_group} from '../../../group-chats.js';
+import {isGenerating} from "../../../../script.js";
+import {group_activation_strategy, groups} from '../../../group-chats.js';
+
+/** @type {Function} */
+toastr.error
+
+/** @type {Function} */
+toastr.warning
+
+/** @type {Function} */
+toastr.success
+
+/** @type {Function} */
+toastr.info
 
 // * Extension variables
+
+const context = () => SillyTavern.getContext();
+const {
+    saveSettingsDebounced,
+	extensionSettings: extension_settings,
+	stopGeneration,
+	eventSource,
+	eventTypes,
+    t
+} = context();
 
 const extensionName = "SillyTavern-QOL";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
@@ -22,7 +43,6 @@ const defaultSettings = {
 const originalConsoleLog = console.log;
 const originalToastrError = toastr.error;
 const audioGenerationError = new Audio();
-const context = SillyTavern.getContext();
 audioGenerationError.src = `${extensionFolderPath}/assets/audio/error-sound.mp3`;
 
 let preventNextAbortSound = false;
@@ -197,7 +217,7 @@ function wrapMethod(originalFunction, callback) {
 }
 
 /**
-	@param {Audio} [audio]
+	@param {HTMLAudioElement} audio
 	audio:
 	- The audio will not play if it is already playing.
 */
@@ -236,7 +256,7 @@ function hideRegenerateButton(hide = true) {
 /** If the chat is unlocked, "regenerate" will be triggered. */
 function triggerRegenerate() {
 	if (!extensionSettings.enabled || !extensionSettings.features.quickRegenerate) return;
-	if (is_send_press) return log("GENERATION_LOCKED", "is_send_press:", is_send_press);
+	if (isGenerating()) return log("GENERATION_LOCKED", "is_send_press:", isGenerating());
 
 	const $option_regenerate = document.getElementById("option_regenerate");
 	$option_regenerate.click();
@@ -253,7 +273,7 @@ function zoomCharacterAvatar() {
 	const lastMes = $('#chat .mes').last()[0];
 	const zoomedAvatar = $('div.zoomed_avatar.draggable').last()[0];
 	const closeZoomButton = $("#closeZoom")[0];
-	const expressionImg = $("#expression-image")[0];
+	const expressionImg = /** @type {HTMLImageElement} */ ($("#expression-image")[0]);
 
 	if (expressionImg && !expressionImg.classList.contains("default") && expressionImg.src.match(/(http:\/\/127.0.0.(1|0):)\d+(\/.+)/gi)) {
 		closeZoomButton.click();
@@ -276,7 +296,7 @@ function zoomCharacterAvatar() {
 	)
 		return log("CHARACTER ALREADY ZOOMED");
 
-	lastMes.querySelector('.avatar').click();
+	/** @type {HTMLElement} */(lastMes.querySelector('.avatar')).click();
 
 	log("zoomCharacterAvatar()");
 }
@@ -287,10 +307,10 @@ async function simpleUserInput() {
 		!extensionSettings.features.simpleUserInput
 	) return;
 
-	const group = groups.find((x) => x.id === selected_group);
+	const group = groups.find((x) => x.id === context().groupId);
 
 	if (
-		is_group_generating &&
+		isGenerating() &&
 		group.activation_strategy === group_activation_strategy.MANUAL
 	)
 		return log("group_activation_strategy.MANUAL");
@@ -329,51 +349,51 @@ function loadQOLFeatures() {
 
 // * Emitter Listeners
 
-eventSource.on(event_types.CHAT_CHANGED, async (...args) => {
+eventSource.on(eventTypes.CHAT_CHANGED, async (...args) => {
 	log("CHAT_CHANGED", args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(event_types.GENERATION_STARTED, async (...args) => {
+eventSource.on(eventTypes.GENERATION_STARTED, async (...args) => {
 	log("GENERATION_STARTED", args);
 	hideRegenerateButton();
 });
 
-eventSource.on(event_types.USER_MESSAGE_RENDERED, async (...args) => {
+eventSource.on(eventTypes.USER_MESSAGE_RENDERED, async (...args) => {
 	log("USER_MESSAGE_RENDERED", args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 	await simpleUserInput();
 });
 
-eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, async (...args) => {
+eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, async (...args) => {
 	log("CHARACTER_MESSAGE_RENDERED", args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(event_types.MESSAGE_UPDATED, async (...args) => {
+eventSource.on(eventTypes.MESSAGE_UPDATED, async (...args) => {
 	log("MESSAGE_UPDATED", args);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(event_types.MESSAGE_SWIPED, async (...args) => {
+eventSource.on(eventTypes.MESSAGE_SWIPED, async (...args) => {
 	log("MESSAGE_SWIPED", args);
 	hideRegenerateButton(false);
 });
 
-eventSource.on(event_types.MESSAGE_DELETED, async (...args) => {
+eventSource.on(eventTypes.MESSAGE_DELETED, async (...args) => {
 	log("MESSAGE_DELETED", args);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(event_types.GENERATION_STOPPED, async (...args) => {
+eventSource.on(eventTypes.GENERATION_STOPPED, async (...args) => {
 	log("GENERATION_STOPPED", args);
 	hideRegenerateButton(false);
 });
 
-eventSource.on(event_types.GENERATION_ENDED, async (...args) => {
+eventSource.on(eventTypes.GENERATION_ENDED, async (...args) => {
 	log("GENERATION_ENDED", args);
 	hideRegenerateButton(false);
 });
@@ -383,26 +403,26 @@ eventSource.on(event_types.GENERATION_ENDED, async (...args) => {
 const userAvatarBlockObserver = new MutationObserver((mutations) =>{
 	// [mutation.type, mutation.target, mutation.attributeName]
 	for (const mutation of mutations)
-		if (mutation.target.classList.contains("selected")) zoomCharacterAvatar();
+		if (/** @type {HTMLElement} */(mutation.target).classList.contains("selected")) zoomCharacterAvatar();
 });
 
 // * Initialize Extension
 
 (async function initExtension() {
 
-	if (!context.extensionSettings[extensionName]) {
-	    context.extensionSettings[extensionName] = structuredClone(defaultSettings);
+	if (!context().extensionSettings[extensionName]) {
+	    context().extensionSettings[extensionName] = structuredClone(defaultSettings);
 	}
 
 	for (const key of Object.keys(defaultSettings)) {
-	    if (context.extensionSettings[extensionName][key] === undefined) {
-		   context.extensionSettings[extensionName][key] = defaultSettings[key];
+	    if (context().extensionSettings[extensionName][key] === undefined) {
+		   context().extensionSettings[extensionName][key] = defaultSettings[key];
 	    }
 	}
 
 	for (const key of Object.keys(defaultSettings.features)) {
-	    if (context.extensionSettings[extensionName].features[key] === undefined) {
-		   context.extensionSettings[extensionName].features[key] = defaultSettings.features[key];
+	    if (context().extensionSettings[extensionName].features[key] === undefined) {
+		   context().extensionSettings[extensionName].features[key] = defaultSettings.features[key];
 	    }
 	}
 
