@@ -13,7 +13,7 @@ toastr.success
 /** @type {Function} */
 toastr.info
 
-// * Extension variables
+// * MARK:Extension variables
 
 const context = () => SillyTavern.getContext();
 const {
@@ -47,14 +47,14 @@ audioGenerationError.src = `${extensionFolderPath}/assets/audio/error-sound.mp3`
 
 let preventNextAbortSound = false;
 
-// * Debugs methods
+// * MARK:Debugs methods
 
 const log = (...msg) => {
 	if (!extensionSettings.debug) return;
 	console.log("[" + extensionName + "]", ...msg);
 };
 
-// * Methods in charge of controlling the extension settings
+// * MARK:Extension settings
 
 async function loadHTMLSettings() {
 	const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
@@ -198,7 +198,7 @@ function settingsNumberButton(event) {
 	saveSettingsDebounced();
 }
 
-// * Extension methods
+// * MARK:Extension methods
 
 /**	Modifies a function to wrap it in a function that first executes a callback and THEN the original function.
 	@param {Function} [originalFunction]
@@ -347,7 +347,7 @@ function loadQOLFeatures() {
 	});
 }
 
-// * Emitter Listeners
+// * MARK:Emitter Listeners
 
 eventSource.on(eventTypes.CHAT_CHANGED, async (...args) => {
 	log("CHAT_CHANGED", args);
@@ -398,7 +398,7 @@ eventSource.on(eventTypes.GENERATION_ENDED, async (...args) => {
 	hideRegenerateButton(false);
 });
 
-// * Observers
+// * MARK:Observers
 
 const userAvatarBlockObserver = new MutationObserver((mutations) =>{
 	// [mutation.type, mutation.target, mutation.attributeName]
@@ -406,7 +406,7 @@ const userAvatarBlockObserver = new MutationObserver((mutations) =>{
 		if (/** @type {HTMLElement} */(mutation.target).classList.contains("selected")) zoomCharacterAvatar();
 });
 
-// * Initialize Extension
+// * MARK:Initialize Extension
 
 (async function initExtension() {
 
