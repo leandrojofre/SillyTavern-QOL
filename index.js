@@ -491,13 +491,13 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 		let entryGroup = entriesGroupedByWorld[worldID] ?? false;
 
 		if (!entryGroup) {
-			entriesGroupedByWorld[worldID] = loreEntryGroupTemplate.clone().toggleClass('d-none', false);
+			entriesGroupedByWorld[worldID] = loreEntryGroupTemplate.clone().toggleClass('d-none', false).toggleClass('template', false);
 			entriesGroupedByWorld[worldID].find('.qol-activated-entry-world-name').html(_.escape(entry.world));
 
 			entryGroup = entriesGroupedByWorld[worldID];
 		}
 
-		const entryItem = loreEntryItemTemplate.clone().toggleClass('d-none', false);
+		const entryItem = loreEntryItemTemplate.clone().toggleClass('d-none', false).toggleClass('template', false);
 
 		entryItem.find('.qol-activated-entry-icon').text(_.escape(getEntryIcon(entry)));
 		entryItem.find('.qol-activated-entry-comment').html(_.escape(entry.comment));
