@@ -1,5 +1,5 @@
-import {isGenerating} from "../../../../script.js";
-import {group_activation_strategy, groups} from '../../../group-chats.js';
+import { isGenerating } from "../../../../script.js";
+import { group_activation_strategy, groups } from '../../../group-chats.js';
 
 /** @type {Function} */
 toastr.error
@@ -12,6 +12,25 @@ toastr.success
 
 /** @type {Function} */
 toastr.info
+
+// declare type
+/**
+ * @typedef {object} WIEntry
+ * @property {number} uid
+ * @property {string} world
+ * @property {string} comment
+ * @property {string} content
+ * @property {string} outletName
+ * @property {number} displayIndex
+ * @property {boolean} vectorized
+ * @property {boolean} constant
+ *
+ * @typedef {object} ScannedWIEntries
+ * @property {object} [activated]
+ * @property {Map} [activated.entries]
+ * @property {object} [new]
+ * @property {Array<WIEntry>} [new.successful]
+ */
 
 // * MARK:Extension variables
 
@@ -47,6 +66,17 @@ audioGenerationError.src = `${extensionFolderPath}/assets/audio/error-sound.mp3`
 
 let preventNextAbortSound = false;
 
+const HTML_TEMPLATES = {
+	/** @returns {Promise<JQuery<HTMLElement>>} */
+    get: async function(fileName = "settings") {
+		const file = HTML_TEMPLATES[fileName] ?? await $.get(`${extensionFolderPath}/html/templates/${fileName}.html`);
+
+		if (!HTML_TEMPLATES[fileName]) HTML_TEMPLATES[fileName] = file;
+
+		return $(file);
+    }
+};
+
 // * MARK:Debugs methods
 
 const log = (...msg) => {
@@ -57,7 +87,7 @@ const log = (...msg) => {
 // * MARK:Extension settings
 
 async function loadHTMLSettings() {
-	const settingsHtml = await $.get(`${extensionFolderPath}/settings.html`);
+	const settingsHtml = await HTML_TEMPLATES.get("settings");
 
 	$("#extensions_settings").append(settingsHtml);
 
@@ -349,57 +379,135 @@ function loadQOLFeatures() {
 
 // * MARK:Emitter Listeners
 
-eventSource.on(eventTypes.CHAT_CHANGED, function (...args) {
+/** @type {Array<WIEntry>} */
+let activatedWiEntries = [];
+
+eventSource.on(eventTypes.CHAT_CHANGED, function (args) {
 	log(eventTypes.CHAT_CHANGED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.GENERATION_STARTED, function (...args) {
+eventSource.on(eventTypes.GENERATION_STARTED, function (args) {
 	log(eventTypes.GENERATION_STARTED, args);
 	hideRegenerateButton();
+
+	activatedWiEntries = [];
 });
 
-eventSource.on(eventTypes.USER_MESSAGE_RENDERED, async function (...args) {
+eventSource.on(eventTypes.USER_MESSAGE_RENDERED, async function (args) {
 	log(eventTypes.USER_MESSAGE_RENDERED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 	await simpleUserInput();
 });
 
-eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, function (...args) {
+eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, function (args) {
 	log(eventTypes.CHARACTER_MESSAGE_RENDERED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.MESSAGE_UPDATED, function (...args) {
+eventSource.on(eventTypes.MESSAGE_UPDATED, function (args) {
 	log(eventTypes.MESSAGE_UPDATED, args);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.MESSAGE_SWIPED, function (...args) {
+eventSource.on(eventTypes.MESSAGE_SWIPED, function (args) {
 	log(eventTypes.MESSAGE_SWIPED, args);
 	hideRegenerateButton(false);
 });
 
-eventSource.on(eventTypes.MESSAGE_DELETED, function (...args) {
+eventSource.on(eventTypes.MESSAGE_DELETED, function (args) {
 	log(eventTypes.MESSAGE_DELETED, args);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.GENERATION_STOPPED, function (...args) {
+eventSource.on(eventTypes.GENERATION_STOPPED, function (args) {
 	log(eventTypes.GENERATION_STOPPED, args);
 	hideRegenerateButton(false);
 });
 
-eventSource.on(eventTypes.GENERATION_ENDED, function (...args) {
+eventSource.on(eventTypes.GENERATION_ENDED, function (args) {
 	log(eventTypes.GENERATION_ENDED, args);
 	hideRegenerateButton(false);
 });
 
-eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (...args) {
+/**
+ * @param {WIEntry} entry
+ * @returns {string}
+ */
+function getEntryIcon(entry) {
+	let icon = '🟢';
+
+	if (entry.constant) icon = '🔵';
+	if (entry.vectorized) icon = '🔗';
+
+	return icon;
+}
+
+eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) {
+	log(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, args)
+
+	// display activated wi entries
+	const loreEntriesList = (await HTML_TEMPLATES.get("activatedLoreEntries")).clone();
+	const loreEntryGroupTemplate = $(loreEntriesList).find('.qol-activated-entry.template');
+	const loreEntryItemTemplate = $(loreEntriesList).find('.qol-activated-entry-item.template');
+
+	$('#qol-display-active-entries').remove();
+
+	// group entries by world (clean name to minus snake case)
+	/**
+	 * @typedef {JQuery<HTMLElement>} EntryGroup
+	 */
+
+	/** @type {object} */
+	const entriesGroupedByWorld = {};
+
+	activatedWiEntries.sort((a, b) => {
+		const worldCompare = a.world.localeCompare(b.world);
+		if (worldCompare !== 0) return worldCompare;
+		const ai = (a.displayIndex ?? 0);
+		const bi = (b.displayIndex ?? 0);
+		return ai - bi;
+	});
+
+	for (const entry of activatedWiEntries) {
+		const worldID = entry.world.toLowerCase().replaceAll(/\s+/g, "_");
+
+		/** @type {EntryGroup} */
+		let entryGroup = entriesGroupedByWorld[worldID] ?? false;
+
+		if (!entryGroup) {
+			entriesGroupedByWorld[worldID] = loreEntryGroupTemplate.clone().toggleClass('d-none', false);
+			entriesGroupedByWorld[worldID].find('.qol-activated-entry-world-name').html(_.escape(entry.world));
+
+			entryGroup = entriesGroupedByWorld[worldID];
+		}
+
+		const entryItem = loreEntryItemTemplate.clone().toggleClass('d-none', false);
+
+		entryItem.find('.qol-activated-entry-icon').text(_.escape(getEntryIcon(entry)));
+		entryItem.find('.qol-activated-entry-comment').html(_.escape(entry.comment));
+
+		entryGroup.find('.qol-activated-entry-world-entries').append(entryItem);
+	}
+
+	/** @type {Array<EntryGroup>} */
+	const entryGroups = Object.values(entriesGroupedByWorld);
+
+	for (const entryGroup of entryGroups)
+		loreEntriesList.find('#qol-activated-lore-entries-list').append(entryGroup);
+
+	loreEntriesList.find('.qol-activated-entry-item').last().toggleClass('separator-bottom-thin', false);
+
+	$('#ai_response_configuration').before(loreEntriesList);
+});
+
+eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEntries} */ args) {
 	log(eventTypes.WORLDINFO_SCAN_DONE, args);
+
+	if (args?.new?.successful) activatedWiEntries.push(...args.new.successful);
 });
 
 // * MARK:Observers
