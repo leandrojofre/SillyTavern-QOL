@@ -8,6 +8,10 @@
 		flex-direction: column;
 	}
 
+	.flex-container:not(.flex-column) {
+		align-items: center;
+	}
+
 	.gap-5px {
 		gap: 5px;
 	}

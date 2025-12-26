@@ -55,7 +55,8 @@ const defaultSettings = {
 		quickRegenerateAutoHide: false,
 		playErrorSound: true,
 		zoomCharacterAvatar: true,
-		simpleUserInput: false
+		simpleUserInput: false,
+		showActivatedWiEntries: true,
 	},
 	debug: false
 };
@@ -97,6 +98,7 @@ async function loadHTMLSettings() {
 	$("#qol-activate-extension").on("input", settingsBooleanButton);
 	$("#qol-activate-zoom-char-avatar").on("input", settingsBooleanButton);
 	$("#qol-activate-simple-user-input").on("input", settingsBooleanButton);
+	$("#qol-show-activated-wi-entries").on("input", settingsBooleanButton);
 
 	$("#qol-activate-quick-retry").on("input", settingsBooleanButton);
 	$("#qol-activate-quick-retry-autohide").on("input", settingsBooleanButton);
@@ -113,6 +115,7 @@ function setSettings() {
 	$("#qol-activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
 	$("#qol-activate-zoom-char-avatar").prop("checked", extensionSettings.features.zoomCharacterAvatar).trigger("input");
 	$("#qol-activate-simple-user-input").prop("checked", extensionSettings.features.simpleUserInput).trigger("input");
+	$("#qol-show-activated-wi-entries").prop("checked", extensionSettings.features.showActivatedWiEntries).trigger("input");
 
 	$("#qol-activate-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
 	$("#qol-activate-quick-retry-autohide").prop("checked", extensionSettings.features.quickRegenerateAutoHide).trigger("input");
@@ -132,6 +135,7 @@ function displaySettings() {
 	log(`Auto hide quick regenerate button is ${extensionSettings.features.quickRegenerateAutoHide ? "active" : "not active"}`);
 	log(`Zoom char avatar is ${extensionSettings.features.zoomCharacterAvatar ? "active" : "not active"}`);
 	log(`Simple user input is ${extensionSettings.features.simpleUserInput ? "active" : "not active"}`);
+	log(`Show activated WI entries is ${extensionSettings.features.showActivatedWiEntries ? "active" : "not active"}`);
 	log(`Extension volume is ${extensionSettings.soundVolume}`);
 	log(`Play error sound is ${extensionSettings.features.playErrorSound ? "active" : "not active"}`);
 	log(`Debug mode is ${extensionSettings.debug ? "active" : "not active"}`);
@@ -150,12 +154,12 @@ const settingsCallbacks = {
 		forceUnable:
 		- If true, forces features.quickRegenerate to be disabled.
 	*/
-	quickRegenerate: (forceUnable = false) => {
+	quickRegenerate: function (forceUnable = false) {
 		hideRegenerateButton(forceUnable || !extensionSettings.features.quickRegenerate);
 	},
 
 	/**	Enable/Disable the message generation error sound. */
-	playErrorSound: () => {
+	playErrorSound: function () {
 		if (
 			!extensionSettings.enabled ||
 			!extensionSettings.features.playErrorSound
@@ -189,10 +193,16 @@ const settingsCallbacks = {
 		forceUnable:
 		- If true, forces features.quickRegenerate to be disabled.
 	*/
-	zoomCharacterAvatar: (forceUnable = false) => {
+	zoomCharacterAvatar: function (forceUnable = false) {
 		if (!forceUnable && extensionSettings.features.zoomCharacterAvatar)
 			zoomCharacterAvatar();
 		else $("#closeZoom")["0"].click();
+	},
+
+	showActivatedWiEntries: function () {
+		const state = extensionSettings.features.showActivatedWiEntries;
+
+		if (!state) $('#qol-display-active-entries').remove();
 	}
 }
 
@@ -447,7 +457,9 @@ function getEntryIcon(entry) {
 }
 
 eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) {
-	log(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, args)
+	log(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, args);
+
+	if (!extensionSettings.enabled || !extensionSettings.features.showActivatedWiEntries) return;
 
 	// display activated wi entries
 	const loreEntriesList = (await HTML_TEMPLATES.get("activatedLoreEntries")).clone();
@@ -489,6 +501,7 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 
 		entryItem.find('.qol-activated-entry-icon').text(_.escape(getEntryIcon(entry)));
 		entryItem.find('.qol-activated-entry-comment').html(_.escape(entry.comment));
+		entryItem.find('.qol-activated-entry-comment').prop('title', entry.comment);
 
 		entryGroup.find('.qol-activated-entry-world-entries').append(entryItem);
 	}
@@ -507,6 +520,7 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEntries} */ args) {
 	log(eventTypes.WORLDINFO_SCAN_DONE, args);
 
+	if (!extensionSettings.enabled || !extensionSettings.features.showActivatedWiEntries) return;
 	if (args?.new?.successful) activatedWiEntries.push(...args.new.successful);
 });
 
