@@ -349,53 +349,57 @@ function loadQOLFeatures() {
 
 // * MARK:Emitter Listeners
 
-eventSource.on(eventTypes.CHAT_CHANGED, async (...args) => {
-	log("CHAT_CHANGED", args);
+eventSource.on(eventTypes.CHAT_CHANGED, function (...args) {
+	log(eventTypes.CHAT_CHANGED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.GENERATION_STARTED, async (...args) => {
-	log("GENERATION_STARTED", args);
+eventSource.on(eventTypes.GENERATION_STARTED, function (...args) {
+	log(eventTypes.GENERATION_STARTED, args);
 	hideRegenerateButton();
 });
 
-eventSource.on(eventTypes.USER_MESSAGE_RENDERED, async (...args) => {
-	log("USER_MESSAGE_RENDERED", args);
+eventSource.on(eventTypes.USER_MESSAGE_RENDERED, async function (...args) {
+	log(eventTypes.USER_MESSAGE_RENDERED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 	await simpleUserInput();
 });
 
-eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, async (...args) => {
-	log("CHARACTER_MESSAGE_RENDERED", args);
+eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, function (...args) {
+	log(eventTypes.CHARACTER_MESSAGE_RENDERED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.MESSAGE_UPDATED, async (...args) => {
-	log("MESSAGE_UPDATED", args);
+eventSource.on(eventTypes.MESSAGE_UPDATED, function (...args) {
+	log(eventTypes.MESSAGE_UPDATED, args);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.MESSAGE_SWIPED, async (...args) => {
-	log("MESSAGE_SWIPED", args);
+eventSource.on(eventTypes.MESSAGE_SWIPED, function (...args) {
+	log(eventTypes.MESSAGE_SWIPED, args);
 	hideRegenerateButton(false);
 });
 
-eventSource.on(eventTypes.MESSAGE_DELETED, async (...args) => {
-	log("MESSAGE_DELETED", args);
+eventSource.on(eventTypes.MESSAGE_DELETED, function (...args) {
+	log(eventTypes.MESSAGE_DELETED, args);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.GENERATION_STOPPED, async (...args) => {
-	log("GENERATION_STOPPED", args);
+eventSource.on(eventTypes.GENERATION_STOPPED, function (...args) {
+	log(eventTypes.GENERATION_STOPPED, args);
 	hideRegenerateButton(false);
 });
 
-eventSource.on(eventTypes.GENERATION_ENDED, async (...args) => {
-	log("GENERATION_ENDED", args);
+eventSource.on(eventTypes.GENERATION_ENDED, function (...args) {
+	log(eventTypes.GENERATION_ENDED, args);
 	hideRegenerateButton(false);
+});
+
+eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (...args) {
+	log(eventTypes.WORLDINFO_SCAN_DONE, args);
 });
 
 // * MARK:Observers
