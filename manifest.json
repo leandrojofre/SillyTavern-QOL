@@ -8,5 +8,6 @@
     "author": "Leandro Jofre",
     "version": "0.5.0",
     "homePage": "https://github.com/leandrojofre/SillyTavern-QOL.git",
-    "auto_update": true
+    "auto_update": true,
+    "minimum_client_version": "1.14.1"
 }
