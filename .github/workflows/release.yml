@@ -38,10 +38,10 @@ jobs:
           else
             current_version=$(git describe --tags $(git rev-list --tags --max-count=1))
           fi
-          
+
           echo "current_version=$current_version" >> $GITHUB_OUTPUT
           echo "Current version: $current_version"
-      
+
           if [[ "$(gh pr view ${{ github.event.pull_request.number }} --json labels -q ".labels[].name")" == *"major"* ]]; then
             new_version=$(echo $current_version | awk -F. '{print $1+1 ".0.0"}')
             echo "version=major" >> $GITHUB_OUTPUT
@@ -52,7 +52,7 @@ jobs:
             new_version=$(echo $current_version | awk -F. '{print $1 "." $2 "." $3+1}')
             echo "version=patch" >> $GITHUB_OUTPUT
           fi
-      
+
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
       - name: Get PR details
@@ -60,7 +60,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          pr=$(gh pr view ${{ github.event.pull_request.number }} --json title,author)
+          pr=$(gh pr view ${{ github.event.pull_request.number }} --json number,title,author)
+          echo "number=$(echo $pr | jq -r .number)" >> $GITHUB_OUTPUT
           echo "title=$(echo $pr | jq -r .title)" >> $GITHUB_OUTPUT
           echo "user=$(echo $pr | jq -r .author.login)" >> $GITHUB_OUTPUT
 
@@ -73,7 +74,7 @@ jobs:
           tag_name: ${{ steps.determine_version.outputs.new_version }}
           release_name: SillyTavern-QOL v${{ steps.determine_version.outputs.new_version }}
           body: |
-           - **PR Title**: ${{ steps.pr_details.outputs.title }}
+           - **PR Title**: [#${{ steps.pr_details.outputs.number }}] ${{ steps.pr_details.outputs.title }}
            - **Merged by**: @${{ steps.pr_details.outputs.user }}
           draft: false
           prerelease: false
