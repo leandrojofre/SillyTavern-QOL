@@ -8,6 +8,11 @@
 		flex-direction: column;
 	}
 
+	.bg-black {
+		background-image: unset !important;
+    	background-color: var(--black30a);
+	}
+
 	.flex-container:not(.flex-column) {
 		align-items: center;
 	}
