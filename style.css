@@ -1,3 +1,15 @@
+:root {
+	--qol-zoomed-avatar-container-display: block;
+}
+
+@media screen and (max-width: 1000px) {
+	.qol-extension-window {
+		#qol-zoomed-avatar-image {
+			display: none;
+		}
+	}
+}
+
 .qol-extension-window {
 	.flex-container {
 		display: flex;
@@ -47,4 +59,17 @@
 	.d-none {
 		display: none !important;
 	}
+
+	#qol-zoomed-avatar-image {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		width: calc((100vw - var(--sheldWidth)) / 2 - 1px);
+	}
+}
+
+#qol-zoomed-avatar-container {
+	display: var(--qol-zoomed-avatar-container-display);
+    width: 0;
+    height: 0;
 }
