@@ -2,6 +2,14 @@
 	--qol-zoomed-avatar-container-display: block;
 }
 
+@media screen and (max-width: 1000px) {
+	.qol-extension-window {
+		#qol-zoomed-avatar-image {
+			display: none;
+		}
+	}
+}
+
 .qol-extension-window {
 	.flex-container {
 		display: flex;
@@ -62,4 +70,6 @@
 
 #qol-zoomed-avatar-container {
 	display: var(--qol-zoomed-avatar-container-display);
+    width: 0;
+    height: 0;
 }
