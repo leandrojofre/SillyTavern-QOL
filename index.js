@@ -41,8 +41,16 @@ const {
 	stopGeneration,
 	eventSource,
 	eventTypes,
+	getThumbnailUrl,
+	chat,
+	characters,
+	powerUserSettings,
     t
 } = context();
+
+const {
+	lodash
+} = SillyTavern.libs;
 
 const extensionName = "SillyTavern-QOL";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
@@ -194,9 +202,11 @@ const settingsCallbacks = {
 		- If true, forces features.quickRegenerate to be disabled.
 	*/
 	zoomCharacterAvatar: function (forceUnable = false) {
-		if (!forceUnable && extensionSettings.features.zoomCharacterAvatar)
-			zoomCharacterAvatar();
-		else $("#closeZoom")["0"].click();
+		const enableFeature = !forceUnable && extensionSettings.features.zoomCharacterAvatar;
+
+		setRootCSSVariables('--qol-zoomed-avatar-container-display', enableFeature ? 'block' : 'none');
+
+		if (enableFeature) zoomCharacterAvatar();
 	},
 
 	showActivatedWiEntries: function () {
@@ -239,6 +249,28 @@ function settingsNumberButton(event) {
 }
 
 // * MARK:Extension methods
+
+function setRootCSSVariables(key = '', value = '') {
+	if (!key) return;
+	document.documentElement.style.setProperty(key, value);
+}
+
+/**
+ * @param {object} mess
+ * @returns {boolean|object}
+ */
+function characterFromMessage(mess) {
+	let char = {};
+
+	if (mess.is_user)
+		char = Object.entries(powerUserSettings.personas)
+			.map(([k, v]) => ({name: v, avatar: k}))
+			.find(p => p.name === mess.name);
+	else
+		char = characters.find(c => c.name === mess.name);
+
+	return char;
+}
 
 /**	Modifies a function to wrap it in a function that first executes a callback and THEN the original function.
 	@param {Function} [originalFunction]
@@ -296,7 +328,7 @@ function hideRegenerateButton(hide = true) {
 /** If the chat is unlocked, "regenerate" will be triggered. */
 function triggerRegenerate() {
 	if (!extensionSettings.enabled || !extensionSettings.features.quickRegenerate) return;
-	if (isGenerating()) return log("GENERATION_LOCKED", "is_send_press:", isGenerating());
+	if (isGenerating()) return log("GENERATION_LOCKED", "isGenerating:", isGenerating());
 
 	const $option_regenerate = document.getElementById("option_regenerate");
 	$option_regenerate.click();
@@ -310,33 +342,19 @@ function zoomCharacterAvatar() {
 		!extensionSettings.features.zoomCharacterAvatar
 	) return;
 
-	const lastMes = $('#chat .mes').last()[0];
-	const zoomedAvatar = $('div.zoomed_avatar.draggable').last()[0];
-	const closeZoomButton = $("#closeZoom")[0];
-	const expressionImg = /** @type {HTMLImageElement} */ ($("#expression-image")[0]);
+	if (!chat?.length) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
 
-	if (expressionImg && !expressionImg.classList.contains("default") && expressionImg.src.match(/(http:\/\/127.0.0.(1|0):)\d+(\/.+)/gi)) {
-		closeZoomButton.click();
-		return log("CHARACTER EXPRESSION ACTIVE");
-	}
+	const lastMes = chat[chat.length - 1];
+	const character = characterFromMessage(lastMes);
 
-	if (!lastMes) return log("CHAT EMPTY");
+	if (!character?.avatar) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
 
-	if (	zoomedAvatar &&
-		((
-			lastMes.getAttribute("ch_name").replace(/(%20|-|\d|\W|\s)+/gi, "").toLowerCase() ===
-			zoomedAvatar.getAttribute("forchar").replace(/(%20|-|\d|\W|\s)+/gi, "").toLowerCase()
-		) || (
-			lastMes.getAttribute("ch_name") === "SillyTavern System" &&
-			zoomedAvatar.getAttribute("forchar") === "img/five"
-		) || (
-			lastMes.getAttribute("is_user") === "true" &&
-			zoomedAvatar.getAttribute("forchar").toLowerCase().includes("user")
-		))
-	)
-		return log("CHARACTER ALREADY ZOOMED");
+	setRootCSSVariables('--qol-zoomed-avatar-container-display', 'block');
 
-	/** @type {HTMLElement} */(lastMes.querySelector('.avatar')).click();
+	const newAvatar = getThumbnailUrl(lastMes.is_user ? 'persona' : 'avatar',  character.avatar);
+
+	$('#qol-zoomed-avatar-image').prop('src', newAvatar);
+	$('#qol-zoomed-avatar-image').prop('alt', character.name);
 
 	log("zoomCharacterAvatar()");
 }
@@ -361,7 +379,7 @@ async function simpleUserInput() {
 }
 
 /**	Creates and insert any button provided by the extension. */
-function loadQOLFeatures() {
+async function loadQOLFeatures() {
     // Quick Regenerate
 	const $rightSendForm = document.getElementById("rightSendForm");
 	const $send_but = document.getElementById("send_but");
@@ -379,12 +397,11 @@ function loadQOLFeatures() {
 
     // Auto zoom last message Avatar
 	log("loadQOLFeatures()", "zoomCharacterAvatar");
-	zoomCharacterAvatar();
+	const zoomedAvatar = await HTML_TEMPLATES.get('zoomedAvatar');
 
-	userAvatarBlockObserver.observe(document.getElementById("user_avatar_block"), {
-		subtree: true,
-		attributeFilter: ["class"],
-	});
+	$('#sheld').append(zoomedAvatar);
+
+	zoomCharacterAvatar();
 }
 
 // * MARK:Emitter Listeners
@@ -415,11 +432,6 @@ eventSource.on(eventTypes.USER_MESSAGE_RENDERED, async function (args) {
 eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, function (args) {
 	log(eventTypes.CHARACTER_MESSAGE_RENDERED, args);
 	hideRegenerateButton(false);
-	zoomCharacterAvatar();
-});
-
-eventSource.on(eventTypes.MESSAGE_UPDATED, function (args) {
-	log(eventTypes.MESSAGE_UPDATED, args);
 	zoomCharacterAvatar();
 });
 
@@ -461,14 +473,12 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 
 	if (!extensionSettings.enabled || !extensionSettings.features.showActivatedWiEntries) return;
 
-	// display activated wi entries
 	const loreEntriesList = (await HTML_TEMPLATES.get("activatedLoreEntries")).clone();
 	const loreEntryGroupTemplate = $(loreEntriesList).find('.qol-activated-entry.template');
 	const loreEntryItemTemplate = $(loreEntriesList).find('.qol-activated-entry-item.template');
 
 	$('#qol-display-active-entries').remove();
 
-	// group entries by world (clean name to minus snake case)
 	/**
 	 * @typedef {JQuery<HTMLElement>} EntryGroup
 	 */
@@ -492,15 +502,15 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 
 		if (!entryGroup) {
 			entriesGroupedByWorld[worldID] = loreEntryGroupTemplate.clone().toggleClass('d-none', false).toggleClass('template', false);
-			entriesGroupedByWorld[worldID].find('.qol-activated-entry-world-name').html(_.escape(entry.world));
+			entriesGroupedByWorld[worldID].find('.qol-activated-entry-world-name').html(lodash.escape(entry.world));
 
 			entryGroup = entriesGroupedByWorld[worldID];
 		}
 
 		const entryItem = loreEntryItemTemplate.clone().toggleClass('d-none', false).toggleClass('template', false);
 
-		entryItem.find('.qol-activated-entry-icon').text(_.escape(getEntryIcon(entry)));
-		entryItem.find('.qol-activated-entry-comment').html(_.escape(entry.comment));
+		entryItem.find('.qol-activated-entry-icon').text(lodash.escape(getEntryIcon(entry)));
+		entryItem.find('.qol-activated-entry-comment').html(lodash.escape(entry.comment));
 		entryItem.find('.qol-activated-entry-comment').prop('title', entry.comment);
 
 		entryGroup.find('.qol-activated-entry-world-entries').append(entryItem);
@@ -522,14 +532,6 @@ eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEnt
 
 	if (!extensionSettings.enabled || !extensionSettings.features.showActivatedWiEntries) return;
 	if (args?.new?.successful) activatedWiEntries.push(...args.new.successful);
-});
-
-// * MARK:Observers
-
-const userAvatarBlockObserver = new MutationObserver((mutations) =>{
-	// [mutation.type, mutation.target, mutation.attributeName]
-	for (const mutation of mutations)
-		if (/** @type {HTMLElement} */(mutation.target).classList.contains("selected")) zoomCharacterAvatar();
 });
 
 // * MARK:Initialize Extension
@@ -554,5 +556,5 @@ const userAvatarBlockObserver = new MutationObserver((mutations) =>{
 
 	await loadHTMLSettings();
 	setSettings();
-	loadQOLFeatures();
+	await loadQOLFeatures();
 })();
