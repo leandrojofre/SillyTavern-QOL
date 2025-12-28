@@ -1,6 +1,7 @@
 # SillyTavern-QOL
 
-SillyTavern is an excellent application for running conversation chat AI models, whether for task or code assistants, roleplay, and a lot of other things; but we already know that. The idea of ​​this extension is to add small changes to facilitate the experience of using SillyTavern, either from quick access buttons in convenient areas, displaying useful information that is usually hidden/hard to access; etc.
+The idea of ​​this extension is to add small changes to facilitate the experience of using SillyTavern, either from quick access buttons in convenient areas, displaying useful information that is usually hidden/hard to access; etc.
+- SillyTavern `+=1.15.0` required
 
 ## Features
 
@@ -9,6 +10,7 @@ For now, the added features are the following:
 - When generating a message returns an error, a sound will be played to inform you in case you have ST in the background.
 - Allow the talking character's avatar to always have zoom applied, automatically changing the avatar when another character or the user speaks.
 - Automatically cancel the generation of a message after a user input. For people, like me, who always edit or hit continue message to their own message and are tired of clicking cancel themselves.
+- Show lorebook entries activated in the last generation in the left side panel.
 
 #### Please, if you have any suggestions, do not hesitate to leave them. If you want to contribute, do not hesitate to fork the repository.
 
@@ -30,5 +32,4 @@ Paste this link into the Install Extension menu: https://github.com/leandrojofre
 
 ## Support and Contributions
 
-- @leandrojofre (Me) - The GOAT ~~*Cannot configure a YAML file without making over 40 commits*~~
-- @city-unit - Creator of the [template](https://github.com/city-unit/st-extension-example) of this repo and the extension.
+- @city-unit - Creator of the [template](https://github.com/city-unit/st-extension-example) of this repo.
