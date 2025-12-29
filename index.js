@@ -272,6 +272,15 @@ function characterFromMessage(mess) {
 	return char;
 }
 
+function getCharacterThumbnailFromMess(mess) {
+	const character = characterFromMessage(mess) ?? {};
+
+	if (mess?.force_avatar) return {char: character, avatar: mess.force_avatar};
+	if (character?.avatar) return {char: character, avatar: getThumbnailUrl(mess.is_user ? 'persona' : 'avatar',  character.avatar)};
+
+	return {char: character, avatar: ""};
+}
+
 /**	Modifies a function to wrap it in a function that first executes a callback and THEN the original function.
 	@param {Function} [originalFunction]
 	originalFunction:
@@ -345,16 +354,13 @@ function zoomCharacterAvatar() {
 	if (!chat?.length) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
 
 	const lastMes = chat[chat.length - 1];
-	const character = characterFromMessage(lastMes);
+	const {char, avatar} = getCharacterThumbnailFromMess(lastMes);
 
-	if (!character?.avatar) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
-
+	if (!avatar) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
+	
 	setRootCSSVariables('--qol-zoomed-avatar-container-display', 'block');
-
-	const newAvatar = getThumbnailUrl(lastMes.is_user ? 'persona' : 'avatar',  character.avatar);
-
-	$('#qol-zoomed-avatar-image').prop('src', newAvatar);
-	$('#qol-zoomed-avatar-image').prop('alt', character.name);
+	$('#qol-zoomed-avatar-image').prop('src', avatar);
+	$('#qol-zoomed-avatar-image').prop('alt', char?.name ?? "");
 
 	log("zoomCharacterAvatar()");
 }
