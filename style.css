@@ -1,5 +1,5 @@
 :root {
-	--qol-zoomed-avatar-container-display: block;
+	--qol-zoomed-avatar-container-display: flex;
 }
 
 @media screen and (max-width: 1000px) {
@@ -60,16 +60,28 @@
 		display: none !important;
 	}
 
-	#qol-zoomed-avatar-image {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		width: calc((100vw - var(--sheldWidth)) / 2 - 1px);
-	}
+}
+
+#qol-zoomed-avatar-image {
+	width: 100%;
+	width: -webkit-fill-available;
+}
+
+#qol-zoomed-avatar-refresh {
+	position: absolute;
+    left: 0;
+    top: 0;
+	margin: 0;
+	padding: 3px;
+    aspect-ratio: 1;
+    border: none;
+	background-color: rgba(0 0 0 / 70%);
 }
 
 #qol-zoomed-avatar-container {
 	display: var(--qol-zoomed-avatar-container-display);
-    width: 0;
-    height: 0;
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	width: calc((100vw - var(--sheldWidth)) / 2 - 1px);
 }

@@ -45,6 +45,8 @@ const {
 	getThumbnailUrl,
 	chat,
 	groups,
+	groupId,
+	characterId,
 	characters,
 	powerUserSettings,
     t
@@ -206,7 +208,7 @@ const settingsCallbacks = {
 	zoomCharacterAvatar: function (forceUnable = false) {
 		const enableFeature = !forceUnable && extensionSettings.features.zoomCharacterAvatar;
 
-		setRootCSSVariables('--qol-zoomed-avatar-container-display', enableFeature ? 'block' : 'none');
+		setRootCSSVariables('--qol-zoomed-avatar-container-display', enableFeature ? 'flex' : 'none');
 
 		if (enableFeature) zoomCharacterAvatar();
 	},
@@ -268,6 +270,8 @@ function characterFromMessage(mess) {
 		char = Object.entries(powerUserSettings.personas)
 			.map(([k, v]) => ({name: v, avatar: k}))
 			.find(p => p.name === mess.name);
+	else if (groupId === null && characterId !== undefined)
+		char = characters[characterId];
 	else
 		char = characters.find(c => c.name === mess.name);
 
@@ -376,9 +380,9 @@ function zoomCharacterAvatar() {
 
 	if (!avatar) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
 	
-	setRootCSSVariables('--qol-zoomed-avatar-container-display', 'block');
+	setRootCSSVariables('--qol-zoomed-avatar-container-display', 'flex');
 	$('#qol-zoomed-avatar-image').data('fallback-img', fallbackAvatar);
-	$('#qol-zoomed-avatar-image').prop('src', avatar);
+	$('#qol-zoomed-avatar-image').prop('src', `${avatar}?cb=${Date.now()}`);
 	$('#qol-zoomed-avatar-image').prop('alt', char?.name ?? "");
 
 	log("zoomCharacterAvatar()");
@@ -425,6 +429,7 @@ async function loadQOLFeatures() {
 	const zoomedAvatar = await HTML_TEMPLATES.get('zoomedAvatar');
 
 	$('#sheld').append(zoomedAvatar);
+	$('#qol-zoomed-avatar-refresh').on('click', zoomCharacterAvatar);
 	$('#qol-zoomed-avatar-image').on('error', function() {
 		log('Error - Avatar could not load, using thumbnail');
 
