@@ -1,5 +1,6 @@
-import { isGenerating } from "../../../../script.js";
-import { group_activation_strategy, groups } from '../../../group-chats.js';
+import { getUserAvatar } from "../../../personas.js";
+import { formatCharacterAvatar, isGenerating } from "../../../../script.js";
+import { group_activation_strategy } from '../../../group-chats.js';
 
 /** @type {Function} */
 toastr.error
@@ -43,6 +44,7 @@ const {
 	eventTypes,
 	getThumbnailUrl,
 	chat,
+	groups,
 	characters,
 	powerUserSettings,
     t
@@ -274,11 +276,27 @@ function characterFromMessage(mess) {
 
 function getCharacterThumbnailFromMess(mess) {
 	const character = characterFromMessage(mess) ?? {};
+	let fallbackAvatar = '';
+	let avatar;
+	let isUser;
 
-	if (mess?.force_avatar) return {char: character, avatar: mess.force_avatar};
-	if (character?.avatar) return {char: character, avatar: getThumbnailUrl(mess.is_user ? 'persona' : 'avatar',  character.avatar)};
+	if (!mess?.force_avatar) {
+		avatar = character.avatar;
+		isUser = mess.is_user === true;
+		fallbackAvatar = getThumbnailUrl(isUser ? 'persona' : 'avatar', avatar);
+	} else {
+		const url = new URL(mess.force_avatar, window.location.origin);
+		const urlType = url?.searchParams.get('type') ?? '';
+		const urlFile = url?.searchParams.get('file') ?? '';
 
-	return {char: character, avatar: ""};
+		isUser = urlType === 'persona';
+		avatar = urlFile;
+		fallbackAvatar = mess.force_avatar;
+	}
+
+	avatar = isUser ? getUserAvatar(avatar) : formatCharacterAvatar(avatar);
+
+	return {char: character, avatar, fallbackAvatar};
 }
 
 /**	Modifies a function to wrap it in a function that first executes a callback and THEN the original function.
@@ -354,11 +372,12 @@ function zoomCharacterAvatar() {
 	if (!chat?.length) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
 
 	const lastMes = chat[chat.length - 1];
-	const {char, avatar} = getCharacterThumbnailFromMess(lastMes);
+	const {char, avatar, fallbackAvatar} = getCharacterThumbnailFromMess(lastMes);
 
 	if (!avatar) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
 	
 	setRootCSSVariables('--qol-zoomed-avatar-container-display', 'block');
+	$('#qol-zoomed-avatar-image').data('fallback-img', fallbackAvatar);
 	$('#qol-zoomed-avatar-image').prop('src', avatar);
 	$('#qol-zoomed-avatar-image').prop('alt', char?.name ?? "");
 
@@ -377,7 +396,7 @@ async function simpleUserInput() {
 		isGenerating() &&
 		group.activation_strategy === group_activation_strategy.MANUAL
 	)
-		return log("group_activation_strategy.MANUAL");
+		return log("group_activation_strategy", group_activation_strategy.MANUAL);
 
 	preventNextAbortSound = true;
 	await stopGeneration();
@@ -406,6 +425,16 @@ async function loadQOLFeatures() {
 	const zoomedAvatar = await HTML_TEMPLATES.get('zoomedAvatar');
 
 	$('#sheld').append(zoomedAvatar);
+	$('#qol-zoomed-avatar-image').on('error', function() {
+		log('Error - Avatar could not load, using thumbnail');
+
+		const src = $(this).attr('src');
+		const fallback = $(this).data('fallback-img');
+
+		if (src === fallback) return log('Error - Thumbnail could not load');
+
+		$(this).prop('src', fallback);
+	});
 
 	zoomCharacterAvatar();
 }
