@@ -45,6 +45,8 @@ const {
 	getThumbnailUrl,
 	chat,
 	groups,
+	groupId,
+	characterId,
 	characters,
 	powerUserSettings,
     t
@@ -206,7 +208,8 @@ const settingsCallbacks = {
 	zoomCharacterAvatar: function (forceUnable = false) {
 		const enableFeature = !forceUnable && extensionSettings.features.zoomCharacterAvatar;
 
-		setRootCSSVariables('--qol-zoomed-avatar-container-display', enableFeature ? 'block' : 'none');
+		setRootCSSVariables('--qol-zoomed-avatar-container-display', enableFeature ? 'flex' : 'none');
+		setRootCSSVariables('--qol-st-zoomed-avatar-container-display', enableFeature ? 'none' : 'flex');
 
 		if (enableFeature) zoomCharacterAvatar();
 	},
@@ -268,6 +271,8 @@ function characterFromMessage(mess) {
 		char = Object.entries(powerUserSettings.personas)
 			.map(([k, v]) => ({name: v, avatar: k}))
 			.find(p => p.name === mess.name);
+	else if (groupId === null && characterId !== undefined)
+		char = characters[characterId];
 	else
 		char = characters.find(c => c.name === mess.name);
 
@@ -297,6 +302,17 @@ function getCharacterThumbnailFromMess(mess) {
 	avatar = isUser ? getUserAvatar(avatar) : formatCharacterAvatar(avatar);
 
 	return {char: character, avatar, fallbackAvatar};
+}
+
+function getLocalStorageVar(var_name, {def_value = ''}) {
+	let localStorageVisibility = localStorage.getItem(var_name);
+
+	if (!localStorageVisibility)
+		localStorage.setItem(var_name, def_value);
+
+	localStorageVisibility = localStorage.getItem(var_name);
+
+	return localStorageVisibility;
 }
 
 /**	Modifies a function to wrap it in a function that first executes a callback and THEN the original function.
@@ -367,7 +383,7 @@ function triggerRegenerate() {
 function zoomCharacterAvatar() {
 	if (!extensionSettings.enabled ||
 		!extensionSettings.features.zoomCharacterAvatar
-	) return;
+	) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
 
 	if (!chat?.length) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
 
@@ -375,10 +391,14 @@ function zoomCharacterAvatar() {
 	const {char, avatar, fallbackAvatar} = getCharacterThumbnailFromMess(lastMes);
 
 	if (!avatar) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
-	
-	setRootCSSVariables('--qol-zoomed-avatar-container-display', 'block');
+
+	const localStorageVisibility = getLocalStorageVar('qol-zoomed-avatar-display', {
+		def_value: extensionSettings.features.zoomCharacterAvatar ? 'flex' : 'none'
+	});
+
+	setRootCSSVariables('--qol-zoomed-avatar-container-display', localStorageVisibility);
 	$('#qol-zoomed-avatar-image').data('fallback-img', fallbackAvatar);
-	$('#qol-zoomed-avatar-image').prop('src', avatar);
+	$('#qol-zoomed-avatar-image').prop('src', `${avatar}?cb=${Date.now()}`);
 	$('#qol-zoomed-avatar-image').prop('alt', char?.name ?? "");
 
 	log("zoomCharacterAvatar()");
@@ -425,6 +445,8 @@ async function loadQOLFeatures() {
 	const zoomedAvatar = await HTML_TEMPLATES.get('zoomedAvatar');
 
 	$('#sheld').append(zoomedAvatar);
+	$('#qol-zoomed-avatar-refresh').on('click', zoomCharacterAvatar);
+
 	$('#qol-zoomed-avatar-image').on('error', function() {
 		log('Error - Avatar could not load, using thumbnail');
 
@@ -434,6 +456,21 @@ async function loadQOLFeatures() {
 		if (src === fallback) return log('Error - Thumbnail could not load');
 
 		$(this).prop('src', fallback);
+	});
+
+	setRootCSSVariables('--qol-zoomed-avatar-container-display', getLocalStorageVar('qol-zoomed-avatar-display', {
+		def_value: extensionSettings.features.zoomCharacterAvatar ? 'flex' : 'none'
+	}));
+
+	$('#qol-zoomed-avatar-close').on('click', function () {
+		localStorage.setItem('qol-zoomed-avatar-display', 'none');
+		setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
+	});
+
+	$('#chat').on('click', '.mes .avatar', function () {
+		if (!extensionSettings.enabled || !extensionSettings.features.zoomCharacterAvatar) return;
+		localStorage.setItem('qol-zoomed-avatar-display', 'flex');
+		setRootCSSVariables('--qol-zoomed-avatar-container-display', 'flex');
 	});
 
 	zoomCharacterAvatar();
@@ -571,8 +608,7 @@ eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEnt
 
 // * MARK:Initialize Extension
 
-(async function initExtension() {
-
+$(async function () {
 	if (!context().extensionSettings[extensionName]) {
 	    context().extensionSettings[extensionName] = structuredClone(defaultSettings);
 	}
@@ -592,4 +628,4 @@ eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEnt
 	await loadHTMLSettings();
 	setSettings();
 	await loadQOLFeatures();
-})();
+});
