@@ -1,5 +1,6 @@
 :root {
 	--qol-zoomed-avatar-container-display: flex;
+	--qol-st-zoomed-avatar-container-display: none;
 }
 
 @media screen and (max-width: 1000px) {
@@ -8,6 +9,10 @@
 			display: none;
 		}
 	}
+}
+
+div.zoomed_avatar:has(.zoomed_avatar_img) {
+	display: var(--qol-st-zoomed-avatar-container-display) !important;
 }
 
 .qol-extension-window {
@@ -67,15 +72,24 @@
 	width: -webkit-fill-available;
 }
 
-#qol-zoomed-avatar-refresh {
+#qol-zoomed-avatar-toolbar {
 	position: absolute;
+	gap: 0px;
     left: 0;
     top: 0;
-	margin: 0;
-	padding: 3px;
-    aspect-ratio: 1;
-    border: none;
-	background-color: rgba(0 0 0 / 70%);
+
+	.menu_button {
+		margin: 0;
+		padding: 3px;
+		aspect-ratio: 1;
+		border: rgba(0 0 0 / 60%);
+		background-color: rgba(0 0 0 / 60%);
+	}
+
+	.menu_button:hover {
+		background-color: rgba(255 255 255 / 60%);
+		color: black;
+	}
 }
 
 #qol-zoomed-avatar-container {
