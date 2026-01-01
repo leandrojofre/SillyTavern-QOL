@@ -608,8 +608,7 @@ eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEnt
 
 // * MARK:Initialize Extension
 
-(async function initExtension() {
-
+$(async function () {
 	if (!context().extensionSettings[extensionName]) {
 	    context().extensionSettings[extensionName] = structuredClone(defaultSettings);
 	}
@@ -629,4 +628,4 @@ eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEnt
 	await loadHTMLSettings();
 	setSettings();
 	await loadQOLFeatures();
-})();
+});
