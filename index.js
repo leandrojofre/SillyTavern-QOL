@@ -382,7 +382,8 @@ function triggerRegenerate() {
 /**	Zooms in on the avatar of the character who is speaking. */
 function zoomCharacterAvatar() {
 	if (!extensionSettings.enabled ||
-		!extensionSettings.features.zoomCharacterAvatar
+		!extensionSettings.features.zoomCharacterAvatar ||
+		!context().chatId
 	) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
 
 	if (!chat?.length) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
