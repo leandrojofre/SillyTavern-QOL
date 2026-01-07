@@ -108,12 +108,13 @@ async function loadHTMLSettings() {
 	$("#qol-check-configuration").on("click", displaySettings);
 
 	$("#qol-activate-extension").on("input", settingsBooleanButton);
-	$("#qol-activate-zoom-char-avatar").on("input", settingsBooleanButton);
-	$("#qol-activate-simple-user-input").on("input", settingsBooleanButton);
+	$("#qol-zoom-char-avatar").on("input", settingsBooleanButton);
+	$("#qol-simple-user-input").on("input", settingsBooleanButton);
 	$("#qol-show-activated-wi-entries").on("input", settingsBooleanButton);
+	$("#qol-remove-names-from-stop-strings").on("input", settingsBooleanButton);
 
-	$("#qol-activate-quick-retry").on("input", settingsBooleanButton);
-	$("#qol-activate-quick-retry-autohide").on("input", settingsBooleanButton);
+	$("#qol-quick-retry").on("input", settingsBooleanButton);
+	$("#qol-quick-retry-autohide").on("input", settingsBooleanButton);
 
 	$("#qol-sound-volume").on("mouseup", settingsNumberButton);
 	$("#qol-activate-error-sound").on("input", settingsBooleanButton);
@@ -125,12 +126,12 @@ async function loadHTMLSettings() {
 
 function setSettings() {
 	$("#qol-activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
-	$("#qol-activate-zoom-char-avatar").prop("checked", extensionSettings.features.zoomCharacterAvatar).trigger("input");
-	$("#qol-activate-simple-user-input").prop("checked", extensionSettings.features.simpleUserInput).trigger("input");
+	$("#qol-zoom-char-avatar").prop("checked", extensionSettings.features.zoomCharacterAvatar).trigger("input");
+	$("#qol-simple-user-input").prop("checked", extensionSettings.features.simpleUserInput).trigger("input");
 	$("#qol-show-activated-wi-entries").prop("checked", extensionSettings.features.showActivatedWiEntries).trigger("input");
 
-	$("#qol-activate-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
-	$("#qol-activate-quick-retry-autohide").prop("checked", extensionSettings.features.quickRegenerateAutoHide).trigger("input");
+	$("#qol-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
+	$("#qol-quick-retry-autohide").prop("checked", extensionSettings.features.quickRegenerateAutoHide).trigger("input");
 
 	$("#qol-sound-volume").prop("value", extensionSettings.soundVolume).trigger("mouseup");
 	$("#qol-activate-error-sound").prop("checked", extensionSettings.features.playErrorSound).trigger("input");
