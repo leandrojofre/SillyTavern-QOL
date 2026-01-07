@@ -3,6 +3,12 @@
 	--qol-st-zoomed-avatar-container-display: none;
 }
 
+@-moz-document url-prefix() {
+    #qol-zoomed-avatar-image {
+        width: 100% !important;
+    }
+}
+
 @media screen and (max-width: 1000px) {
 	.qol-extension-window {
 		#qol-zoomed-avatar-image {
