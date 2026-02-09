@@ -48,6 +48,10 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 		padding: 0px;
 	}
 
+	.p-5px {
+		padding: 5px;
+	}
+
 	.mb-10px {
 		margin-bottom: 10px;
 	}
@@ -80,7 +84,6 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 
 #qol-zoomed-avatar-toolbar {
 	position: absolute;
-	gap: 0px;
     left: 0;
     top: 0;
 
