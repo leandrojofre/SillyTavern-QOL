@@ -550,8 +550,9 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 	const loreEntriesList = (await HTML_TEMPLATES.get("activatedLoreEntries")).clone();
 	const loreEntryGroupTemplate = $(loreEntriesList).find('.qol-activated-entry.template');
 	const loreEntryItemTemplate = $(loreEntriesList).find('.qol-activated-entry-item.template');
+	const currentList = $('#qol-activated-lore-entries-list');
 
-	$('#qol-display-active-entries').remove();
+	if (currentList.length) currentList.empty();
 
 	/**
 	 * @typedef {JQuery<HTMLElement>} EntryGroup
@@ -598,7 +599,15 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 
 	loreEntriesList.find('.qol-activated-entry-item').last().toggleClass('separator-bottom-thin', false);
 
-	$('#ai_response_configuration').before(loreEntriesList);
+	if (currentList.length) {
+		const newList = loreEntriesList
+			.find('#qol-activated-lore-entries-list')
+			.children();
+
+		currentList.append(newList);
+	} else {
+		$('#ai_response_configuration').before(loreEntriesList);
+	}
 });
 
 eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEntries} */ args) {
