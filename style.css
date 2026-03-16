@@ -22,9 +22,14 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 }
 
 .qol-extension-window {
+	label.flex-container {
+		gap: 10px;
+	}
+
 	.flex-container {
 		display: flex;
 		flex-wrap: nowrap;
+		gap: 5px;
 	}
 
 	.flex-column {
@@ -55,12 +60,12 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 	.mb-10px {
 		margin-bottom: 10px;
 	}
-	
+
 	#qol-sound-volume {
 		flex: 1;
 		max-width: 70%;
 	}
-	
+
 	.separator-bottom {
 		border-bottom: 1px solid #2a2a2a;
 		padding-bottom: 1vh;
@@ -75,6 +80,9 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 		display: none !important;
 	}
 
+	input[type="checkbox"] {
+		margin-right: 0;
+	}
 }
 
 #qol-zoomed-avatar-image {

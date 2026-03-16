@@ -12,23 +12,29 @@
 
 				<label class="flex-container">
 					<input id="qol-activate-extension" qol-setting="enabled" type="checkbox" />
-					Enable/Disable the extension
+					<span>Enable/Disable the extension</span>
 				</label>
 
 				<label class="flex-container">
 					<input id="qol-zoom-char-avatar" qol-setting="features/zoomCharacterAvatar" type="checkbox" />
-					Automatically zooms in on the avatar of the character who is speaking
+					<span>Automatically zooms in on the avatar of the character who is speaking</span>
+				</label>
+
+				<label class="flex-container" title="Chat Completions: It will collapse consecutive newlines for every prompt, including messages. Text Completions: It will collapse newlines for the whole prompt string. This setting was made for Chat Completions and it is recommended for that API; for Text Completions use the Collapse Consecutive Newlines setting from the AI Response Formatting panel." data-i18n="[title]Chat Completions: It will collapse consecutive newlines for every prompt, including messages. Text Completions: It will collapse newlines for the whole prompt string. This setting was made for Chat Completions and it is recommended for that API; for Text Completions use the Collapse Consecutive Newlines setting from the AI Response Formatting panel.">
+					<input id="qol-simple-collapse-newlines" qol-setting="features/collapseNewlines" type="checkbox" />
+					<i class="right_menu_button fa-solid fa-circle-exclamation interactable" tabindex="0"></i>
+					<span>Collapse consecutive newlines into a single newline in your prompts and messages</span>
 				</label>
 
 				<label class="flex-container">
 					<input id="qol-simple-user-input" qol-setting="features/simpleUserInput" type="checkbox" />
-					When sending messages, the automatic generation of a response is canceled
+					<span>When sending messages, the automatic generation of a response is canceled</span>
 				</label>
 
 				<label class="flex-container" title="Trigger a message to generate the list, it will be displayed in the left side panel." data-i18n="[title]Trigger a message to generate the list, it will be displayed in the left side panel.">
 					<input id="qol-show-activated-wi-entries" qol-setting="features/showActivatedWiEntries" type="checkbox" />
-					Show WI entries activated in the last generation
 					<i class="right_menu_button fa-solid fa-circle-exclamation interactable" tabindex="0"></i>
+					<span>Show WI entries activated in the last generation</span>
 				</label>
 			</div>
 
@@ -37,12 +43,12 @@
 
 				<label class="flex-container">
 					<input id="qol-quick-retry" qol-setting="features/quickRegenerate" type="checkbox" />
-					Quick "Regenerate" button
+					<span>Quick "Regenerate" button</span>
 				</label>
 
 				<label class="flex-container">
 					<input id="qol-quick-retry-autohide" qol-setting="features/quickRegenerateAutoHide" type="checkbox" />
-					Prevent quick regeneration button from auto hiding
+					<span>Prevent quick regeneration button from auto hiding</span>
 				</label>
 			</div>
 
@@ -50,14 +56,14 @@
 				<b>Sound settings</b>
 
 				<label class="flex-container" style="padding-left: 1vh; margin-bottom: 0.8vh;">
-					Volume:
+					<span>Volume:</span>
 					<input type="range" id="qol-sound-volume" min="0" max="1" step="0.01" value="1" qol-setting="soundVolume">
 				</label>
 
 				<label class="flex-container" title="IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, 'console.log' was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return 'console.log' to its original state." data-i18n="[title]IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, 'console.log' was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return 'console.log' to its original state.">
 					<input id="qol-activate-error-sound" qol-setting="features/playErrorSound" type="checkbox" />
-					Play an error sound when a chat generation fails
 					<i class="right_menu_button fa-solid fa-circle-exclamation interactable" tabindex="0"></i>
+					<span>Play an error sound when a chat generation fails</span>
 				</label>
 			</div>
 
@@ -66,12 +72,12 @@
 
 				<div class="flex-container">
 					<input id="qol-check-configuration" class="menu_button" type="button" value="Check Configuration" />
-					Print the configuration values ​​through the console
+					<span>Print the configuration values ​​through the console</span>
 				</div>
 
 				<label class="flex-container">
 					<input id="qol-activate-debug" qol-setting="debug" type="checkbox" />
-					Enable/Disable the debug console logs
+					<span>Enable/Disable the debug console logs</span>
 				</label>
 			</div>
 		</div>

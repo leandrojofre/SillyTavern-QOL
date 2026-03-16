@@ -1,6 +1,7 @@
 import { getUserAvatar } from "../../../personas.js";
 import { formatCharacterAvatar, isGenerating } from "../../../../script.js";
 import { group_activation_strategy } from '../../../group-chats.js';
+import {collapseNewlines} from "../../../power-user.js";
 
 /** @type {Function} */
 toastr.error
@@ -69,6 +70,7 @@ const defaultSettings = {
 		zoomCharacterAvatar: true,
 		simpleUserInput: false,
 		showActivatedWiEntries: true,
+		collapseNewlines: true,
 	},
 	debug: false
 };
@@ -110,6 +112,7 @@ async function loadHTMLSettings() {
 	$("#qol-activate-extension").on("input", settingsBooleanButton);
 	$("#qol-zoom-char-avatar").on("input", settingsBooleanButton);
 	$("#qol-simple-user-input").on("input", settingsBooleanButton);
+	$("#qol-simple-collapse-newlines").on("input", settingsBooleanButton);
 	$("#qol-show-activated-wi-entries").on("input", settingsBooleanButton);
 	$("#qol-remove-names-from-stop-strings").on("input", settingsBooleanButton);
 
@@ -128,6 +131,7 @@ function setSettings() {
 	$("#qol-activate-extension").prop("checked", extensionSettings.enabled).trigger("input");
 	$("#qol-zoom-char-avatar").prop("checked", extensionSettings.features.zoomCharacterAvatar).trigger("input");
 	$("#qol-simple-user-input").prop("checked", extensionSettings.features.simpleUserInput).trigger("input");
+	$("#qol-simple-collapse-newlines").prop("checked", extensionSettings.features.collapseNewlines).trigger("input");
 	$("#qol-show-activated-wi-entries").prop("checked", extensionSettings.features.showActivatedWiEntries).trigger("input");
 
 	$("#qol-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
@@ -148,6 +152,7 @@ function displaySettings() {
 	log(`Auto hide quick regenerate button is ${extensionSettings.features.quickRegenerateAutoHide ? "active" : "not active"}`);
 	log(`Zoom char avatar is ${extensionSettings.features.zoomCharacterAvatar ? "active" : "not active"}`);
 	log(`Simple user input is ${extensionSettings.features.simpleUserInput ? "active" : "not active"}`);
+	log(`Collapse newlines is ${extensionSettings.features.collapseNewlines ? "active" : "not active"}`);
 	log(`Show activated WI entries is ${extensionSettings.features.showActivatedWiEntries ? "active" : "not active"}`);
 	log(`Extension volume is ${extensionSettings.soundVolume}`);
 	log(`Play error sound is ${extensionSettings.features.playErrorSound ? "active" : "not active"}`);
@@ -182,6 +187,7 @@ const settingsCallbacks = {
 			return;
 		}
 
+		// @ts-ignore
 		toastr.error = wrapMethod(toastr.error, (args) =>
 			playAudio(audioGenerationError)
 		);
@@ -407,7 +413,7 @@ function zoomCharacterAvatar() {
 }
 
 /** Automatically cancels the generation of a message after user input */
-async function simpleUserInput() {
+function simpleUserInput() {
 	if (!extensionSettings.enabled ||
 		!extensionSettings.features.simpleUserInput
 	) return;
@@ -421,7 +427,7 @@ async function simpleUserInput() {
 		return log("group_activation_strategy", group_activation_strategy.MANUAL);
 
 	preventNextAbortSound = true;
-	await stopGeneration();
+	stopGeneration();
 	log("simpleUserInput(): preventNextAbortSound ", preventNextAbortSound);
 }
 
@@ -496,11 +502,11 @@ eventSource.on(eventTypes.GENERATION_STARTED, function (args) {
 	activatedWiEntries = [];
 });
 
-eventSource.on(eventTypes.USER_MESSAGE_RENDERED, async function (args) {
+eventSource.on(eventTypes.USER_MESSAGE_RENDERED, function (args) {
 	log(eventTypes.USER_MESSAGE_RENDERED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
-	await simpleUserInput();
+	simpleUserInput();
 });
 
 eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, function (args) {
@@ -527,6 +533,23 @@ eventSource.on(eventTypes.GENERATION_STOPPED, function (args) {
 eventSource.on(eventTypes.GENERATION_ENDED, function (args) {
 	log(eventTypes.GENERATION_ENDED, args);
 	hideRegenerateButton(false);
+});
+
+eventSource.makeFirst(eventTypes.GENERATE_AFTER_DATA, (arg) => {
+    if (!extensionSettings.enabled) return;
+
+    log(eventTypes.GENERATE_AFTER_DATA, arg);
+
+	const doCollapseNewlines = context().powerUserSettings.collapse_newlines && extensionSettings.features.collapseNewlines;
+
+	if (!doCollapseNewlines) return;
+
+    if (Array.isArray(arg.prompt)) {
+        for (const item of arg.prompt)
+            item.content = String(item.content).replaceAll(/\n+/g, '\n');
+    } else {
+        arg.prompt = String(arg.prompt).replaceAll(/\n+/g, '\n');
+	}
 });
 
 /**
