@@ -70,7 +70,7 @@ const defaultSettings = {
 		zoomCharacterAvatar: true,
 		simpleUserInput: false,
 		showActivatedWiEntries: true,
-		collapseNewlines: true,
+		collapseNewlines: false,
 	},
 	debug: false
 };
