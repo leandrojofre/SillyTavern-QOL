@@ -84,7 +84,7 @@ let preventNextAbortSound = false;
 const HTML_TEMPLATES = {
 	/** @returns {Promise<JQuery<HTMLElement>>} */
     get: async function(fileName = "settings") {
-		const file = HTML_TEMPLATES[fileName] ?? await $.get(`${extensionFolderPath}/html/templates/${fileName}.html`);
+		const file = HTML_TEMPLATES[fileName] ?? await $.get(`${extensionFolderPath}/source/html/templates/${fileName}.html`);
 
 		if (!HTML_TEMPLATES[fileName]) HTML_TEMPLATES[fileName] = file;
 
