@@ -1,7 +1,7 @@
 import { getUserAvatar } from "../../../personas.js";
 import { formatCharacterAvatar, isGenerating } from "../../../../script.js";
 import { group_activation_strategy } from '../../../group-chats.js';
-import {collapseNewlines} from "../../../power-user.js";
+import { copyText } from '../../../utils.js';
 
 /** @type {Function} */
 toastr.error
@@ -310,6 +310,15 @@ function setRootCSSVariables(key = '', value = '') {
 }
 
 /**
+ * Set user clipboard
+ * @param {string} text
+ * @returns {Promise<void>}
+ */
+async function setClipboard(text = '') {
+    return await copyText(text);
+}
+
+/**
  * @param {object} mess
  * @returns {boolean|object}
  */
@@ -524,13 +533,20 @@ async function loadQOLFeatures() {
 	});
 
 	zoomCharacterAvatar();
+
+	$(document).on('click', '#qol-custom-samplers-list .sampler-key', function(e) {
+		const text = $(e.currentTarget)?.text() ?? '';
+
+		setClipboard(text);
+		toastr.info('Sampler key sent to the clipboard', extensionName);
+	});
 }
 
 // * MARK:Slash Commands
 
 const ENUMS_PROVIDER = {
 	customSamplersSet: () => Object
-		.keys(extensionSettings.customSamplers ?? [])
+		.keys(extensionSettings.customSamplers ?? {})
 		.map(key => new SlashCommandEnumValue(key))
 };
 
@@ -692,6 +708,7 @@ function registerSlashCommands() {
 					name: 'key',
 					description: 'Key of the custom parameter to add to the generation request body. It must be JSON compatible.',
 					typeList: [ARGUMENT_TYPE.STRING],
+					enumProvider: ENUMS_PROVIDER.customSamplersSet,
 					isRequired: true
 				})
 			],
