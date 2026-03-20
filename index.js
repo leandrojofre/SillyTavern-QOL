@@ -33,7 +33,6 @@ toastr.info
  * @property {boolean} debug
  */
 
-// declare type
 /**
  * @typedef {Object} WIEntry
  * @property {number} uid
@@ -211,7 +210,7 @@ const settingsCallbacks = {
 	},
 
 	/**	Enables/Disables the quick regenerate button.
-		@param {Boolean} [forceUnable=false]
+		@param {boolean} [forceUnable=false]
 		forceUnable:
 		- If true, forces features.quickRegenerate to be disabled.
 	*/
@@ -251,7 +250,7 @@ const settingsCallbacks = {
 	},
 
 	/**	Enables/Disables the zoom in avatar feature.
-		@param {Boolean} [forceUnable=false]
+		@param {boolean} [forceUnable=false]
 		forceUnable:
 		- If true, forces features.quickRegenerate to be disabled.
 	*/
@@ -320,8 +319,8 @@ async function setClipboard(text = '') {
 }
 
 /**
- * @param {object} mess
- * @returns {boolean|object}
+ * @param {Object} mess
+ * @returns {boolean|Object}
  */
 function characterFromMessage(mess) {
 	let char = {};
@@ -405,7 +404,7 @@ function playAudio(audio) {
 
 /**	Hides the Continue button from the right side of the input area.
 	If the extension is disabled, "hideRegenerateButton" will always hide the button.
-	@param {Boolean} [hide=true]
+	@param {boolean} [hide=true]
 	hide:
 	- Whether or not to hide the retry button.
 */
@@ -603,7 +602,7 @@ async function updateCustomSamplersList() {
 }
 
 /**
- * @param {object} namedArgs
+ * @param {Object} namedArgs
  * @param {string} unnamedArg
  * @returns {string}
  */
@@ -639,7 +638,7 @@ function addCustomSamplerCommand(namedArgs, unnamedArg = '') {
 }
 
 /**
- * @param {object} namedArgs
+ * @param {Object} namedArgs
  * @param {string} unnamedArg
  * @returns {string}
  */
@@ -666,7 +665,7 @@ function getCustomSamplerCommand(namedArgs, unnamedArg = '') {
 }
 
 /**
- * @param {object} namedArgs
+ * @param {Object} namedArgs
  * @param {string} unnamedArg
  * @returns {string}
  */
@@ -983,7 +982,7 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 	 * @typedef {JQuery<HTMLElement>} EntryGroup
 	 */
 
-	/** @type {object} */
+	/** @type {Object} */
 	const entriesGroupedByWorld = {};
 
 	activatedWiEntries.sort((a, b) => {
