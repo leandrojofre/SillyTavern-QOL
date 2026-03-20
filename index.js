@@ -16,7 +16,7 @@ toastr.success
 toastr.info
 
 /**
- * @typedef {object} ExtensionSettingsFeatures
+ * @typedef {Object} ExtensionSettingsFeatures
  * @property {boolean} quickRegenerate
  * @property {boolean} quickRegenerateAutoHide
  * @property {boolean} playErrorSound
@@ -25,17 +25,17 @@ toastr.info
  * @property {boolean} showActivatedWiEntries
  * @property {boolean} collapseNewlines
  *
- * @typedef {object} ExtensionSettings
+ * @typedef {Object} ExtensionSettings
  * @property {boolean} enabled
  * @property {number} soundVolume
  * @property {ExtensionSettingsFeatures} features
- * @property {object} customSamplers
+ * @property {Object} customSamplers
  * @property {boolean} debug
  */
 
 // declare type
 /**
- * @typedef {object} WIEntry
+ * @typedef {Object} WIEntry
  * @property {number} uid
  * @property {string} world
  * @property {string} comment
@@ -45,10 +45,10 @@ toastr.info
  * @property {boolean} vectorized
  * @property {boolean} constant
  *
- * @typedef {object} ScannedWIEntries
- * @property {object} [activated]
+ * @typedef {Object} ScannedWIEntries
+ * @property {Object} [activated]
  * @property {Map} [activated.entries]
- * @property {object} [new]
+ * @property {Object} [new]
  * @property {Array<WIEntry>} [new.successful]
  */
 
@@ -78,7 +78,8 @@ const {
 } = context();
 
 const {
-	lodash
+	lodash,
+	yaml
 } = SillyTavern.libs;
 
 const extensionName = "SillyTavern-QOL";
@@ -918,6 +919,40 @@ eventSource.makeFirst(eventTypes.GENERATE_AFTER_DATA, function (arg) {
 		}
 	}
 });
+
+eventSource.makeFirst(eventTypes.CHAT_COMPLETION_SETTINGS_READY, function (arg) {
+    if (!extensionSettings.enabled) return;
+
+	log(eventTypes.CHAT_COMPLETION_SETTINGS_READY, arg);
+
+	const doAddCustomSamplers = extensionSettings.customSamplers && Object.keys(extensionSettings.customSamplers).length > 0;
+
+	if (doAddCustomSamplers) {
+		const cleanSamplers = lodash.cloneDeep(extensionSettings.customSamplers);
+		const otherSamplers = {};
+
+		for (const key of Object.keys(arg ?? {})) {
+			if (cleanSamplers[key] !== undefined)
+				otherSamplers[key] = structuredClone(cleanSamplers[key]);
+
+			delete cleanSamplers[key];
+		}
+
+		log('Custom OAI compatible samplers OBJ', { otherSamplers, cleanSamplers });
+
+		Object.assign(arg, otherSamplers);
+
+		if (Object.keys(cleanSamplers).length) {
+			const customSamplers = yaml.parse(arg?.custom_include_body || '{}');
+			const mergedCustomSamplers = Object.assign({}, customSamplers, cleanSamplers);
+			const yamlCustomSamplers = yaml.stringify(mergedCustomSamplers);
+
+			log('Custom OAI compatible samplers YAML', { customSamplers, cleanSamplers, mergedCustomSamplers, yamlCustomSamplers });
+
+			arg.custom_include_body = yamlCustomSamplers;
+		}
+	}
+})
 
 /**
  * @param {WIEntry} entry
