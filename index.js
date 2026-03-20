@@ -551,7 +551,8 @@ async function updateCustomSamplersList() {
 	$samplerList.empty();
 
 	for (const [key, value] of Object.entries(extensionSettings.customSamplers)) {
-		const hasEntries = Array.isArray(value) || typeof value === 'object';
+		const isNullish = lodash.isNull(value) || lodash.isUndefined(value);
+		const hasEntries = (Array.isArray(value) || typeof value === 'object') && !isNullish;
 
 		const $row = $samplerRowTemplate
 			.clone()
