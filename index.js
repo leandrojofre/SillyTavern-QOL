@@ -15,6 +15,24 @@ toastr.success
 /** @type {Function} */
 toastr.info
 
+/**
+ * @typedef {object} ExtensionSettingsFeatures
+ * @property {boolean} quickRegenerate
+ * @property {boolean} quickRegenerateAutoHide
+ * @property {boolean} playErrorSound
+ * @property {boolean} zoomCharacterAvatar
+ * @property {boolean} simpleUserInput
+ * @property {boolean} showActivatedWiEntries
+ * @property {boolean} collapseNewlines
+ *
+ * @typedef {object} ExtensionSettings
+ * @property {boolean} enabled
+ * @property {number} soundVolume
+ * @property {ExtensionSettingsFeatures} features
+ * @property {object} customSamplers
+ * @property {boolean} debug
+ */
+
 // declare type
 /**
  * @typedef {object} WIEntry
@@ -50,6 +68,12 @@ const {
 	characterId,
 	characters,
 	powerUserSettings,
+	SlashCommandEnumValue,
+	SlashCommandParser,
+	SlashCommand,
+	SlashCommandArgument,
+	SlashCommandNamedArgument,
+	ARGUMENT_TYPE,
     t
 } = context();
 
@@ -59,7 +83,11 @@ const {
 
 const extensionName = "SillyTavern-QOL";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+
+/** @type {ExtensionSettings} */
 const extensionSettings = extension_settings[extensionName];
+
+/** @type {ExtensionSettings} */
 const defaultSettings = {
 	enabled: true,
 	soundVolume: 1,
@@ -72,6 +100,7 @@ const defaultSettings = {
 		showActivatedWiEntries: true,
 		collapseNewlines: false,
 	},
+	customSamplers: {},
 	debug: false
 };
 const originalConsoleLog = console.log;
@@ -94,10 +123,23 @@ const HTML_TEMPLATES = {
 
 // * MARK:Debugs methods
 
-const log = (...msg) => {
-	if (!extensionSettings.debug) return;
-	console.log("[" + extensionName + "]", ...msg);
-};
+function log(...mess) {
+    if (!extensionSettings.enabled || !extensionSettings.debug) return;
+
+    console.log(`[${extensionName}]`, ...mess);
+}
+
+function debug(...mess) {
+    if (!extensionSettings.enabled || !extensionSettings.debug) return;
+
+    console.debug(`[${extensionName}]`, ...mess);
+}
+
+function error(...mess) {
+    if (!extensionSettings.enabled || !extensionSettings.debug) return;
+
+    console.error(`[${extensionName}]`, ...mess);
+}
 
 // * MARK:Extension settings
 
@@ -484,6 +526,303 @@ async function loadQOLFeatures() {
 	zoomCharacterAvatar();
 }
 
+// * MARK:Slash Commands
+
+const ENUMS_PROVIDER = {
+	customSamplersSet: () => Object
+		.keys(extensionSettings.customSamplers ?? [])
+		.map(key => new SlashCommandEnumValue(key))
+};
+
+/**
+ * @param {string} message
+ * @returns {string}
+ */
+function slashCommandError(message = '') {
+	toastr.error(message, extensionName);
+	error("SlashCommandError:", message);
+	return '';
+}
+
+async function updateCustomSamplersList() {
+	const $samplerRowTemplate = await HTML_TEMPLATES.get('customSamplerRow');
+	const $samplerList = $('#qol-custom-samplers-list');
+
+	$samplerList.empty();
+
+	for (const [key, value] of Object.entries(extensionSettings.customSamplers)) {
+		const hasEntries = Array.isArray(value) || typeof value === 'object';
+
+		const $row = $samplerRowTemplate
+			.clone()
+			.find(hasEntries ? '.list-dictionary-row' : '.general-row')
+
+		log('Check samplers display', {hasEntries, $samplerList, $samplerRowTemplate, $row});
+
+		$row.find('.sampler-key').text(key);
+
+		if (hasEntries) {
+			const entries = Object.entries(value);
+
+			for (const [index, entry] of entries) {
+				const $prop = $row
+					.find('.prop-template')
+					.clone()
+					.toggleClass('d-none', false)
+					.toggleClass('prop-template', false);
+
+				$prop.find('.prop-key').text(index);
+				$prop.find('.prop-value').text(JSON.stringify(entry));
+
+				$row.find('.sampler-value').append($prop);
+			}
+		} else {
+			$row.find('.sampler-value').text(JSON.stringify(value));
+		}
+
+		$samplerList.append($row);
+	}
+}
+
+/**
+ * @param {object} namedArgs
+ * @param {string} unnamedArg
+ * @returns {string}
+ */
+function addCustomSamplerCommand(namedArgs, unnamedArg = '') {
+	const { key = '' } = namedArgs;
+
+	if (unnamedArg === undefined || typeof unnamedArg !== 'string')
+		return slashCommandError('Value is required.');
+
+	let value;
+
+	try {
+		value = JSON.parse(unnamedArg);
+	} catch (error) {
+		return slashCommandError('Value must be JSON compatible.');
+	}
+
+	if (!key) return slashCommandError('Key is required.');
+
+	try {
+		JSON.stringify({ [String(key)]: value });
+	} catch (e) {
+		return slashCommandError('Key must be JSON compatible.');
+	}
+
+	log('Adding custom sampler:', { key, value });
+
+	extensionSettings.customSamplers[String(key)] = value;
+	updateCustomSamplersList();
+	saveSettingsDebounced();
+
+	return '';
+}
+
+/**
+ * @param {object} namedArgs
+ * @param {string} unnamedArg
+ * @returns {string}
+ */
+function getCustomSamplerCommand(namedArgs, unnamedArg = '') {
+	const { key = '' } = namedArgs;
+
+	if (!key) return slashCommandError('Key is required.');
+
+	try {
+		JSON.stringify({ [String(key)]: 'value' });
+	} catch (e) {
+		return slashCommandError('Key must be JSON compatible.');
+	}
+
+	const value = extensionSettings.customSamplers[String(key)];
+
+	log('Getting custom sampler:', { key, value });
+
+	try {
+		return JSON.stringify(value === undefined ? null : value);
+	} catch (error) {
+		return slashCommandError('Unexpected error, the value couldn\'t be converted into a string.');
+	}
+}
+
+/**
+ * @param {object} namedArgs
+ * @param {string} unnamedArg
+ * @returns {string}
+ */
+function delCustomSamplerCommand(namedArgs, unnamedArg = '') {
+	const { key = '' } = namedArgs;
+
+	if (!key) return slashCommandError('Key is required.');
+
+	try {
+		JSON.stringify({ [String(key)]: 'value' });
+	} catch (e) {
+		return slashCommandError('Key must be JSON compatible.');
+	}
+
+	const valueExists = extensionSettings.customSamplers[String(key)] !== undefined;
+
+	if (valueExists) {
+		delete extensionSettings.customSamplers[String(key)];
+		updateCustomSamplersList();
+		saveSettingsDebounced();
+	}
+
+	return '';
+}
+
+function flushCustomSamplersCommand() {
+	extensionSettings.customSamplers = {};
+	updateCustomSamplersList();
+	saveSettingsDebounced();
+	return '';
+}
+
+function registerSlashCommands() {
+	SlashCommandParser.addCommandObject(
+		SlashCommand.fromProps({
+			name: 'qol-add-custom-sampler',
+			callback: addCustomSamplerCommand,
+			namedArgumentList: [
+				SlashCommandNamedArgument.fromProps({
+					name: 'key',
+					description: 'Key of the custom parameter to add to the generation request body. It must be JSON compatible.',
+					typeList: [ARGUMENT_TYPE.STRING],
+					isRequired: true
+				})
+			],
+			unnamedArgumentList: [
+				SlashCommandArgument.fromProps({
+					description: 'Value of the custom sampler parameter. It must be JSON compatible.',
+					isRequired: true,
+					typeList: [
+						ARGUMENT_TYPE.STRING,
+						ARGUMENT_TYPE.NUMBER,
+						ARGUMENT_TYPE.BOOLEAN,
+						ARGUMENT_TYPE.LIST,
+						ARGUMENT_TYPE.DICTIONARY,
+						'null'
+					]
+				})
+			],
+			helpString: `
+			<div>
+				Adds a custom parameter to the body of your generation requests. WARNING: Make sure your provider/s support the custom parameters you are adding, or at least don't bounce requests with extra parameters, otherwise your generation requests may fail. If a sampler set with this command matches a sampler set by SillyTavern, it will replace it for that generation.
+			</div>
+
+			<div>
+				<strong>Example</strong>
+				<ul>
+					<li>
+						<pre><code>/qol-add-custom-sampler key="bad_words" ["User:"]</code></pre>
+					</li>
+					<li>
+						<pre><code>/qol-add-custom-sampler key="guided_regex" /[A-z0-9 _]/</code></pre>
+					</li>
+					<li>
+						<pre><code>/qol-add-custom-sampler key="model" My_Custom_Model_Name</code></pre>
+					</li>
+				</ul>
+			</div>`
+		})
+	);
+
+	SlashCommandParser.addCommandObject(
+		SlashCommand.fromProps({
+			name: 'qol-get-custom-sampler',
+			callback: getCustomSamplerCommand,
+			namedArgumentList: [
+				SlashCommandNamedArgument.fromProps({
+					name: 'key',
+					description: 'Key of the custom parameter to add to the generation request body. It must be JSON compatible.',
+					typeList: [ARGUMENT_TYPE.STRING],
+					enumProvider: ENUMS_PROVIDER.customSamplersSet,
+					isRequired: true
+				})
+			],
+			returns: 'Value of the sampler',
+			helpString: `
+			<div>
+				Fetches the value of a custom parameter set with <code>/qol-add-custom-sampler</code>. It returns <code>null</code> if the sampler doesn't exist.
+			</div>
+
+			<div>
+				<strong>Example</strong>
+				<ul>
+					<li>
+						<pre><code>/qol-get-custom-sampler key="bad_words"</code></pre>
+					</li>
+					<li>
+						<pre><code>/qol-get-custom-sampler key="guided_regex"</code></pre>
+					</li>
+					<li>
+						<pre><code>/qol-get-custom-sampler key="model"</code></pre>
+					</li>
+				</ul>
+			</div>`
+		})
+	);
+
+	SlashCommandParser.addCommandObject(
+		SlashCommand.fromProps({
+			name: 'qol-del-custom-sampler',
+			callback: delCustomSamplerCommand,
+			namedArgumentList: [
+				SlashCommandNamedArgument.fromProps({
+					name: 'key',
+					description: 'Key of the custom parameter to delete. It must be JSON compatible.',
+					typeList: [ARGUMENT_TYPE.STRING],
+					enumProvider: ENUMS_PROVIDER.customSamplersSet,
+					isRequired: true
+				})
+			],
+			returns: 'Value of the sampler',
+			helpString: `
+			<div>
+				Deletes a custom parameter set with <code>/qol-add-custom-sampler</code>.
+			</div>
+
+			<div>
+				<strong>Example</strong>
+				<ul>
+					<li>
+						<pre><code>/qol-del-custom-sampler key="bad_words"</code></pre>
+					</li>
+					<li>
+						<pre><code>/qol-del-custom-sampler key="guided_regex"</code></pre>
+					</li>
+					<li>
+						<pre><code>/qol-del-custom-sampler key="model"</code></pre>
+					</li>
+				</ul>
+			</div>`
+		})
+	);
+
+	SlashCommandParser.addCommandObject(
+		SlashCommand.fromProps({
+			name: 'qol-flush-custom-samplers',
+			callback: flushCustomSamplersCommand,
+			helpString: `
+			<div>
+				Deletes all custom request parameters set with <code>/qol-add-custom-sampler</code>.
+			</div>
+
+			<div>
+				<strong>Example</strong>
+				<ul>
+					<li>
+						<pre><code>/qol-flush-custom-samplers</code></pre>
+					</li>
+				</ul>
+			</div>`
+		})
+	);
+}
+
 // * MARK:Emitter Listeners
 
 /** @type {Array<WIEntry>} */
@@ -535,20 +874,30 @@ eventSource.on(eventTypes.GENERATION_ENDED, function (args) {
 	hideRegenerateButton(false);
 });
 
-eventSource.makeFirst(eventTypes.GENERATE_AFTER_DATA, (arg) => {
+eventSource.makeFirst(eventTypes.GENERATE_AFTER_DATA, function (arg) {
     if (!extensionSettings.enabled) return;
 
     log(eventTypes.GENERATE_AFTER_DATA, arg);
 
 	const doCollapseNewlines = context().powerUserSettings.collapse_newlines && extensionSettings.features.collapseNewlines;
+	const doAddCustomSamplers = extensionSettings.customSamplers && Object.keys(extensionSettings.customSamplers).length > 0;
 
-	if (!doCollapseNewlines) return;
+	if (doCollapseNewlines) {
+		if (Array.isArray(arg.prompt)) {
+			for (const item of arg.prompt) {
+				if (typeof item.content !== 'string') continue;
 
-    if (Array.isArray(arg.prompt)) {
-        for (const item of arg.prompt)
-            item.content = String(item.content).replaceAll(/\n+/g, '\n');
-    } else {
-        arg.prompt = String(arg.prompt).replaceAll(/\n+/g, '\n');
+				item.content = item.content.replaceAll(/\n+/g, '\n');
+			}
+		} else if (typeof arg.prompt === 'string') {
+			arg.prompt = arg.prompt.replaceAll(/\n+/g, '\n');
+		}
+	}
+
+	if (doAddCustomSamplers) {
+		for (const [key, value] of Object.entries(extensionSettings.customSamplers)) {
+			arg[key] = value;
+		}
 	}
 });
 
@@ -662,4 +1011,6 @@ $(async function () {
 	await loadHTMLSettings();
 	setSettings();
 	await loadQOLFeatures();
+	registerSlashCommands();
+	await updateCustomSamplersList();
 });
