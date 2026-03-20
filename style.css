@@ -119,6 +119,10 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
         padding-left: 10px;
     }
 
+	.cursor-pointer {
+		cursor: pointer;
+	}
+
 	.d-none {
 		display: none !important;
 	}
