@@ -972,9 +972,9 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 	if (!extensionSettings.enabled || !extensionSettings.features.showActivatedWiEntries) return;
 
 	const loreEntriesList = (await HTML_TEMPLATES.get("activatedLoreEntries")).clone();
-	const loreEntryGroupTemplate = $(loreEntriesList).find('.qol-activated-entry.template');
-	const loreEntryItemTemplate = $(loreEntriesList).find('.qol-activated-entry-item.template');
-	const currentList = $('#qol-activated-lore-entries-list');
+	const loreEntryGroupTemplate = $(loreEntriesList).find('.qol-activated-world.template');
+	const loreEntryItemTemplate = $(loreEntriesList).find('.qol-activated-entry.template');
+	const currentList = $('#qol-activated-worlds-list');
 
 	if (currentList.length) currentList.empty();
 
@@ -1001,7 +1001,7 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 
 		if (!entryGroup) {
 			entriesGroupedByWorld[worldID] = loreEntryGroupTemplate.clone().toggleClass('d-none', false).toggleClass('template', false);
-			entriesGroupedByWorld[worldID].find('.qol-activated-entry-world-name').html(lodash.escape(entry.world));
+			entriesGroupedByWorld[worldID].find('.qol-activated-world-name').html(lodash.escape(entry.world));
 
 			entryGroup = entriesGroupedByWorld[worldID];
 		}
@@ -1012,20 +1012,20 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 		entryItem.find('.qol-activated-entry-comment').html(lodash.escape(entry.comment));
 		entryItem.find('.qol-activated-entry-comment').prop('title', entry.comment);
 
-		entryGroup.find('.qol-activated-entry-world-entries').append(entryItem);
+		entryGroup.find('.qol-activated-world-entries').append(entryItem);
 	}
 
 	/** @type {Array<EntryGroup>} */
 	const entryGroups = Object.values(entriesGroupedByWorld);
 
 	for (const entryGroup of entryGroups)
-		loreEntriesList.find('#qol-activated-lore-entries-list').append(entryGroup);
+		loreEntriesList.find('#qol-activated-worlds-list').append(entryGroup);
 
-	loreEntriesList.find('.qol-activated-entry-item').last().toggleClass('separator-bottom-thin', false);
+	loreEntriesList.find('.qol-activated-entry').last().toggleClass('separator-bottom', false);
 
 	if (currentList.length) {
 		const newList = loreEntriesList
-			.find('#qol-activated-lore-entries-list')
+			.find('#qol-activated-worlds-list')
 			.children();
 
 		currentList.append(newList);
