@@ -24,6 +24,7 @@ toastr.info
  * @property {boolean} simpleUserInput
  * @property {boolean} showActivatedWiEntries
  * @property {boolean} collapseNewlines
+ * @property {boolean} preventPageNavigation
  *
  * @typedef {Object} ExtensionSettings
  * @property {boolean} enabled
@@ -33,7 +34,6 @@ toastr.info
  * @property {boolean} debug
  */
 
-// declare type
 /**
  * @typedef {Object} WIEntry
  * @property {number} uid
@@ -56,12 +56,13 @@ toastr.info
 
 const context = () => SillyTavern.getContext();
 const {
+	stopGeneration,
+	getThumbnailUrl,
+	isMobile,
     saveSettingsDebounced,
 	extensionSettings: extension_settings,
-	stopGeneration,
 	eventSource,
 	eventTypes,
-	getThumbnailUrl,
 	chat,
 	groups,
 	groupId,
@@ -100,6 +101,7 @@ const defaultSettings = {
 		simpleUserInput: false,
 		showActivatedWiEntries: true,
 		collapseNewlines: false,
+		preventPageNavigation: false,
 	},
 	customSamplers: {},
 	debug: false
@@ -157,7 +159,7 @@ async function loadHTMLSettings() {
 	$("#qol-simple-user-input").on("input", settingsBooleanButton);
 	$("#qol-simple-collapse-newlines").on("input", settingsBooleanButton);
 	$("#qol-show-activated-wi-entries").on("input", settingsBooleanButton);
-	$("#qol-remove-names-from-stop-strings").on("input", settingsBooleanButton);
+	$("#qol-prevent-page-navigation").on("input", settingsBooleanButton);
 
 	$("#qol-quick-retry").on("input", settingsBooleanButton);
 	$("#qol-quick-retry-autohide").on("input", settingsBooleanButton);
@@ -176,6 +178,7 @@ function setSettings() {
 	$("#qol-simple-user-input").prop("checked", extensionSettings.features.simpleUserInput).trigger("input");
 	$("#qol-simple-collapse-newlines").prop("checked", extensionSettings.features.collapseNewlines).trigger("input");
 	$("#qol-show-activated-wi-entries").prop("checked", extensionSettings.features.showActivatedWiEntries).trigger("input");
+	$("#qol-prevent-page-navigation").prop("checked", extensionSettings.features.preventPageNavigation).trigger("input");
 
 	$("#qol-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
 	$("#qol-quick-retry-autohide").prop("checked", extensionSettings.features.quickRegenerateAutoHide).trigger("input");
@@ -211,16 +214,16 @@ const settingsCallbacks = {
 	},
 
 	/**	Enables/Disables the quick regenerate button.
-		@param {Boolean} [forceUnable=false]
+		@param {boolean} [forceUnable=false]
 		forceUnable:
 		- If true, forces features.quickRegenerate to be disabled.
 	*/
-	quickRegenerate: function (forceUnable = false) {
+	quickRegenerate: function(forceUnable = false) {
 		hideRegenerateButton(forceUnable || !extensionSettings.features.quickRegenerate);
 	},
 
 	/**	Enable/Disable the message generation error sound. */
-	playErrorSound: function () {
+	playErrorSound: function() {
 		if (
 			!extensionSettings.enabled ||
 			!extensionSettings.features.playErrorSound
@@ -251,11 +254,11 @@ const settingsCallbacks = {
 	},
 
 	/**	Enables/Disables the zoom in avatar feature.
-		@param {Boolean} [forceUnable=false]
+		@param {boolean} [forceUnable=false]
 		forceUnable:
 		- If true, forces features.quickRegenerate to be disabled.
 	*/
-	zoomCharacterAvatar: function (forceUnable = false) {
+	zoomCharacterAvatar: function(forceUnable = false) {
 		const enableFeature = !forceUnable && extensionSettings.features.zoomCharacterAvatar;
 
 		setRootCSSVariables('--qol-zoomed-avatar-container-display', enableFeature ? 'flex' : 'none');
@@ -264,10 +267,16 @@ const settingsCallbacks = {
 		if (enableFeature) zoomCharacterAvatar();
 	},
 
-	showActivatedWiEntries: function () {
+	showActivatedWiEntries: function() {
 		const state = extensionSettings.features.showActivatedWiEntries;
 
 		if (!state) $('#qol-display-active-entries').remove();
+	},
+
+	preventPageNavigation: function() {
+		extensionSettings.features.preventPageNavigation && isMobile() ?
+			enableBackProtection() :
+			disableBackProtection();
 	}
 }
 
@@ -320,8 +329,8 @@ async function setClipboard(text = '') {
 }
 
 /**
- * @param {object} mess
- * @returns {boolean|object}
+ * @param {Object} mess
+ * @returns {boolean|Object}
  */
 function characterFromMessage(mess) {
 	let char = {};
@@ -384,7 +393,7 @@ function getLocalStorageVar(var_name, {def_value = ''}) {
 	@returns Returns the original function, with the callback added.
 */
 function wrapMethod(originalFunction, callback) {
-	return function (...args) {
+	return function(...args) {
 		callback(args);
 		originalFunction.apply(this, args);
 	};
@@ -405,7 +414,7 @@ function playAudio(audio) {
 
 /**	Hides the Continue button from the right side of the input area.
 	If the extension is disabled, "hideRegenerateButton" will always hide the button.
-	@param {Boolean} [hide=true]
+	@param {boolean} [hide=true]
 	hide:
 	- Whether or not to hide the retry button.
 */
@@ -483,6 +492,31 @@ function simpleUserInput() {
 	log("simpleUserInput(): preventNextAbortSound ", preventNextAbortSound);
 }
 
+function enableBackProtection() {
+	history.pushState({guard: true}, '', location.href);
+	window.addEventListener('popstate', onPopState);
+	window.addEventListener('beforeunload', onBeforeUnload);
+}
+
+function disableBackProtection() {
+	window.removeEventListener('popstate', onPopState);
+	window.removeEventListener('beforeunload', onBeforeUnload);
+	history.replaceState(null, '', location.href);
+}
+
+function onPopState(e) {
+  	if (e.state && e.state.guard) {
+		history.pushState({guard: true}, '', location.href);
+		disableBackProtection();
+		history.back();
+  	}
+}
+
+function onBeforeUnload(e) {
+	e.preventDefault();
+	e.returnValue = '';
+}
+
 /**	Creates and insert any button provided by the extension. */
 async function loadQOLFeatures() {
     // Quick Regenerate
@@ -522,12 +556,12 @@ async function loadQOLFeatures() {
 		def_value: extensionSettings.features.zoomCharacterAvatar ? 'flex' : 'none'
 	}));
 
-	$('#qol-zoomed-avatar-close').on('click', function () {
+	$('#qol-zoomed-avatar-close').on('click', function() {
 		localStorage.setItem('qol-zoomed-avatar-display', 'none');
 		setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
 	});
 
-	$('#chat').on('click', '.mes .avatar', function () {
+	$('#chat').on('click', '.mes .avatar', function() {
 		if (!extensionSettings.enabled || !extensionSettings.features.zoomCharacterAvatar) return;
 		localStorage.setItem('qol-zoomed-avatar-display', 'flex');
 		setRootCSSVariables('--qol-zoomed-avatar-container-display', 'flex');
@@ -603,7 +637,7 @@ async function updateCustomSamplersList() {
 }
 
 /**
- * @param {object} namedArgs
+ * @param {Object} namedArgs
  * @param {string} unnamedArg
  * @returns {string}
  */
@@ -639,7 +673,7 @@ function addCustomSamplerCommand(namedArgs, unnamedArg = '') {
 }
 
 /**
- * @param {object} namedArgs
+ * @param {Object} namedArgs
  * @param {string} unnamedArg
  * @returns {string}
  */
@@ -666,7 +700,7 @@ function getCustomSamplerCommand(namedArgs, unnamedArg = '') {
 }
 
 /**
- * @param {object} namedArgs
+ * @param {Object} namedArgs
  * @param {string} unnamedArg
  * @returns {string}
  */
@@ -847,53 +881,53 @@ function registerSlashCommands() {
 /** @type {Array<WIEntry>} */
 let activatedWiEntries = [];
 
-eventSource.on(eventTypes.CHAT_CHANGED, function (args) {
+eventSource.on(eventTypes.CHAT_CHANGED, function(args) {
 	log(eventTypes.CHAT_CHANGED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.GENERATION_STARTED, function (args) {
+eventSource.on(eventTypes.GENERATION_STARTED, function(args) {
 	log(eventTypes.GENERATION_STARTED, args);
 	hideRegenerateButton();
 
 	activatedWiEntries = [];
 });
 
-eventSource.on(eventTypes.USER_MESSAGE_RENDERED, function (args) {
+eventSource.on(eventTypes.USER_MESSAGE_RENDERED, function(args) {
 	log(eventTypes.USER_MESSAGE_RENDERED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 	simpleUserInput();
 });
 
-eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, function (args) {
+eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, function(args) {
 	log(eventTypes.CHARACTER_MESSAGE_RENDERED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.MESSAGE_SWIPED, function (args) {
+eventSource.on(eventTypes.MESSAGE_SWIPED, function(args) {
 	log(eventTypes.MESSAGE_SWIPED, args);
 	hideRegenerateButton(false);
 });
 
-eventSource.on(eventTypes.MESSAGE_DELETED, function (args) {
+eventSource.on(eventTypes.MESSAGE_DELETED, function(args) {
 	log(eventTypes.MESSAGE_DELETED, args);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.GENERATION_STOPPED, function (args) {
+eventSource.on(eventTypes.GENERATION_STOPPED, function(args) {
 	log(eventTypes.GENERATION_STOPPED, args);
 	hideRegenerateButton(false);
 });
 
-eventSource.on(eventTypes.GENERATION_ENDED, function (args) {
+eventSource.on(eventTypes.GENERATION_ENDED, function(args) {
 	log(eventTypes.GENERATION_ENDED, args);
 	hideRegenerateButton(false);
 });
 
-eventSource.makeFirst(eventTypes.GENERATE_AFTER_DATA, function (arg) {
+eventSource.makeFirst(eventTypes.GENERATE_AFTER_DATA, function(arg) {
     if (!extensionSettings.enabled) return;
 
     log(eventTypes.GENERATE_AFTER_DATA, arg);
@@ -920,7 +954,7 @@ eventSource.makeFirst(eventTypes.GENERATE_AFTER_DATA, function (arg) {
 	}
 });
 
-eventSource.makeFirst(eventTypes.CHAT_COMPLETION_SETTINGS_READY, function (arg) {
+eventSource.makeFirst(eventTypes.CHAT_COMPLETION_SETTINGS_READY, function(arg) {
     if (!extensionSettings.enabled) return;
 
 	log(eventTypes.CHAT_COMPLETION_SETTINGS_READY, arg);
@@ -967,15 +1001,15 @@ function getEntryIcon(entry) {
 	return icon;
 }
 
-eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) {
+eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function(args) {
 	log(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, args);
 
 	if (!extensionSettings.enabled || !extensionSettings.features.showActivatedWiEntries) return;
 
 	const loreEntriesList = (await HTML_TEMPLATES.get("activatedLoreEntries")).clone();
-	const loreEntryGroupTemplate = $(loreEntriesList).find('.qol-activated-entry.template');
-	const loreEntryItemTemplate = $(loreEntriesList).find('.qol-activated-entry-item.template');
-	const currentList = $('#qol-activated-lore-entries-list');
+	const loreEntryGroupTemplate = $(loreEntriesList).find('.qol-activated-world.template');
+	const loreEntryItemTemplate = $(loreEntriesList).find('.qol-activated-entry.template');
+	const currentList = $('#qol-activated-worlds-list');
 
 	if (currentList.length) currentList.empty();
 
@@ -983,7 +1017,7 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 	 * @typedef {JQuery<HTMLElement>} EntryGroup
 	 */
 
-	/** @type {object} */
+	/** @type {Object} */
 	const entriesGroupedByWorld = {};
 
 	activatedWiEntries.sort((a, b) => {
@@ -1002,7 +1036,7 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 
 		if (!entryGroup) {
 			entriesGroupedByWorld[worldID] = loreEntryGroupTemplate.clone().toggleClass('d-none', false).toggleClass('template', false);
-			entriesGroupedByWorld[worldID].find('.qol-activated-entry-world-name').html(lodash.escape(entry.world));
+			entriesGroupedByWorld[worldID].find('.qol-activated-world-name').html(lodash.escape(entry.world));
 
 			entryGroup = entriesGroupedByWorld[worldID];
 		}
@@ -1013,20 +1047,20 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 		entryItem.find('.qol-activated-entry-comment').html(lodash.escape(entry.comment));
 		entryItem.find('.qol-activated-entry-comment').prop('title', entry.comment);
 
-		entryGroup.find('.qol-activated-entry-world-entries').append(entryItem);
+		entryGroup.find('.qol-activated-world-entries').append(entryItem);
 	}
 
 	/** @type {Array<EntryGroup>} */
 	const entryGroups = Object.values(entriesGroupedByWorld);
 
 	for (const entryGroup of entryGroups)
-		loreEntriesList.find('#qol-activated-lore-entries-list').append(entryGroup);
+		loreEntriesList.find('#qol-activated-worlds-list').append(entryGroup);
 
-	loreEntriesList.find('.qol-activated-entry-item').last().toggleClass('separator-bottom-thin', false);
+	loreEntriesList.find('.qol-activated-entry').last().toggleClass('separator-bottom', false);
 
 	if (currentList.length) {
 		const newList = loreEntriesList
-			.find('#qol-activated-lore-entries-list')
+			.find('#qol-activated-worlds-list')
 			.children();
 
 		currentList.append(newList);
@@ -1035,7 +1069,7 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 	}
 });
 
-eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEntries} */ args) {
+eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function(/** @type {ScannedWIEntries} */ args) {
 	log(eventTypes.WORLDINFO_SCAN_DONE, args);
 
 	if (!extensionSettings.enabled || !extensionSettings.features.showActivatedWiEntries) return;
@@ -1044,7 +1078,7 @@ eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEnt
 
 // * MARK:Initialize Extension
 
-$(async function () {
+eventSource.once(eventTypes.APP_INITIALIZED, async function() {
 	if (!context().extensionSettings[extensionName]) {
 	    context().extensionSettings[extensionName] = structuredClone(defaultSettings);
 	}
