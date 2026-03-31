@@ -24,6 +24,7 @@ toastr.info
  * @property {boolean} simpleUserInput
  * @property {boolean} showActivatedWiEntries
  * @property {boolean} collapseNewlines
+ * @property {boolean} preventPageNavigation
  *
  * @typedef {Object} ExtensionSettings
  * @property {boolean} enabled
@@ -55,12 +56,13 @@ toastr.info
 
 const context = () => SillyTavern.getContext();
 const {
+	stopGeneration,
+	getThumbnailUrl,
+	isMobile,
     saveSettingsDebounced,
 	extensionSettings: extension_settings,
-	stopGeneration,
 	eventSource,
 	eventTypes,
-	getThumbnailUrl,
 	chat,
 	groups,
 	groupId,
@@ -99,6 +101,7 @@ const defaultSettings = {
 		simpleUserInput: false,
 		showActivatedWiEntries: true,
 		collapseNewlines: false,
+		preventPageNavigation: false,
 	},
 	customSamplers: {},
 	debug: false
@@ -156,7 +159,7 @@ async function loadHTMLSettings() {
 	$("#qol-simple-user-input").on("input", settingsBooleanButton);
 	$("#qol-simple-collapse-newlines").on("input", settingsBooleanButton);
 	$("#qol-show-activated-wi-entries").on("input", settingsBooleanButton);
-	$("#qol-remove-names-from-stop-strings").on("input", settingsBooleanButton);
+	$("#qol-prevent-page-navigation").on("input", settingsBooleanButton);
 
 	$("#qol-quick-retry").on("input", settingsBooleanButton);
 	$("#qol-quick-retry-autohide").on("input", settingsBooleanButton);
@@ -175,6 +178,7 @@ function setSettings() {
 	$("#qol-simple-user-input").prop("checked", extensionSettings.features.simpleUserInput).trigger("input");
 	$("#qol-simple-collapse-newlines").prop("checked", extensionSettings.features.collapseNewlines).trigger("input");
 	$("#qol-show-activated-wi-entries").prop("checked", extensionSettings.features.showActivatedWiEntries).trigger("input");
+	$("#qol-prevent-page-navigation").prop("checked", extensionSettings.features.preventPageNavigation).trigger("input");
 
 	$("#qol-quick-retry").prop("checked", extensionSettings.features.quickRegenerate).trigger("input");
 	$("#qol-quick-retry-autohide").prop("checked", extensionSettings.features.quickRegenerateAutoHide).trigger("input");
@@ -214,12 +218,12 @@ const settingsCallbacks = {
 		forceUnable:
 		- If true, forces features.quickRegenerate to be disabled.
 	*/
-	quickRegenerate: function (forceUnable = false) {
+	quickRegenerate: function(forceUnable = false) {
 		hideRegenerateButton(forceUnable || !extensionSettings.features.quickRegenerate);
 	},
 
 	/**	Enable/Disable the message generation error sound. */
-	playErrorSound: function () {
+	playErrorSound: function() {
 		if (
 			!extensionSettings.enabled ||
 			!extensionSettings.features.playErrorSound
@@ -254,7 +258,7 @@ const settingsCallbacks = {
 		forceUnable:
 		- If true, forces features.quickRegenerate to be disabled.
 	*/
-	zoomCharacterAvatar: function (forceUnable = false) {
+	zoomCharacterAvatar: function(forceUnable = false) {
 		const enableFeature = !forceUnable && extensionSettings.features.zoomCharacterAvatar;
 
 		setRootCSSVariables('--qol-zoomed-avatar-container-display', enableFeature ? 'flex' : 'none');
@@ -263,10 +267,16 @@ const settingsCallbacks = {
 		if (enableFeature) zoomCharacterAvatar();
 	},
 
-	showActivatedWiEntries: function () {
+	showActivatedWiEntries: function() {
 		const state = extensionSettings.features.showActivatedWiEntries;
 
 		if (!state) $('#qol-display-active-entries').remove();
+	},
+
+	preventPageNavigation: function() {
+		extensionSettings.features.preventPageNavigation && isMobile() ?
+			enableBackProtection() :
+			disableBackProtection();
 	}
 }
 
@@ -383,7 +393,7 @@ function getLocalStorageVar(var_name, {def_value = ''}) {
 	@returns Returns the original function, with the callback added.
 */
 function wrapMethod(originalFunction, callback) {
-	return function (...args) {
+	return function(...args) {
 		callback(args);
 		originalFunction.apply(this, args);
 	};
@@ -482,6 +492,31 @@ function simpleUserInput() {
 	log("simpleUserInput(): preventNextAbortSound ", preventNextAbortSound);
 }
 
+function enableBackProtection() {
+	history.pushState({guard: true}, '', location.href);
+	window.addEventListener('popstate', onPopState);
+	window.addEventListener('beforeunload', onBeforeUnload);
+}
+
+function disableBackProtection() {
+	window.removeEventListener('popstate', onPopState);
+	window.removeEventListener('beforeunload', onBeforeUnload);
+	history.replaceState(null, '', location.href);
+}
+
+function onPopState(e) {
+  	if (e.state && e.state.guard) {
+		history.pushState({guard: true}, '', location.href);
+		disableBackProtection();
+		history.back();
+  	}
+}
+
+function onBeforeUnload(e) {
+	e.preventDefault();
+	e.returnValue = '';
+}
+
 /**	Creates and insert any button provided by the extension. */
 async function loadQOLFeatures() {
     // Quick Regenerate
@@ -521,12 +556,12 @@ async function loadQOLFeatures() {
 		def_value: extensionSettings.features.zoomCharacterAvatar ? 'flex' : 'none'
 	}));
 
-	$('#qol-zoomed-avatar-close').on('click', function () {
+	$('#qol-zoomed-avatar-close').on('click', function() {
 		localStorage.setItem('qol-zoomed-avatar-display', 'none');
 		setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
 	});
 
-	$('#chat').on('click', '.mes .avatar', function () {
+	$('#chat').on('click', '.mes .avatar', function() {
 		if (!extensionSettings.enabled || !extensionSettings.features.zoomCharacterAvatar) return;
 		localStorage.setItem('qol-zoomed-avatar-display', 'flex');
 		setRootCSSVariables('--qol-zoomed-avatar-container-display', 'flex');
@@ -846,53 +881,53 @@ function registerSlashCommands() {
 /** @type {Array<WIEntry>} */
 let activatedWiEntries = [];
 
-eventSource.on(eventTypes.CHAT_CHANGED, function (args) {
+eventSource.on(eventTypes.CHAT_CHANGED, function(args) {
 	log(eventTypes.CHAT_CHANGED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.GENERATION_STARTED, function (args) {
+eventSource.on(eventTypes.GENERATION_STARTED, function(args) {
 	log(eventTypes.GENERATION_STARTED, args);
 	hideRegenerateButton();
 
 	activatedWiEntries = [];
 });
 
-eventSource.on(eventTypes.USER_MESSAGE_RENDERED, function (args) {
+eventSource.on(eventTypes.USER_MESSAGE_RENDERED, function(args) {
 	log(eventTypes.USER_MESSAGE_RENDERED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 	simpleUserInput();
 });
 
-eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, function (args) {
+eventSource.on(eventTypes.CHARACTER_MESSAGE_RENDERED, function(args) {
 	log(eventTypes.CHARACTER_MESSAGE_RENDERED, args);
 	hideRegenerateButton(false);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.MESSAGE_SWIPED, function (args) {
+eventSource.on(eventTypes.MESSAGE_SWIPED, function(args) {
 	log(eventTypes.MESSAGE_SWIPED, args);
 	hideRegenerateButton(false);
 });
 
-eventSource.on(eventTypes.MESSAGE_DELETED, function (args) {
+eventSource.on(eventTypes.MESSAGE_DELETED, function(args) {
 	log(eventTypes.MESSAGE_DELETED, args);
 	zoomCharacterAvatar();
 });
 
-eventSource.on(eventTypes.GENERATION_STOPPED, function (args) {
+eventSource.on(eventTypes.GENERATION_STOPPED, function(args) {
 	log(eventTypes.GENERATION_STOPPED, args);
 	hideRegenerateButton(false);
 });
 
-eventSource.on(eventTypes.GENERATION_ENDED, function (args) {
+eventSource.on(eventTypes.GENERATION_ENDED, function(args) {
 	log(eventTypes.GENERATION_ENDED, args);
 	hideRegenerateButton(false);
 });
 
-eventSource.makeFirst(eventTypes.GENERATE_AFTER_DATA, function (arg) {
+eventSource.makeFirst(eventTypes.GENERATE_AFTER_DATA, function(arg) {
     if (!extensionSettings.enabled) return;
 
     log(eventTypes.GENERATE_AFTER_DATA, arg);
@@ -919,7 +954,7 @@ eventSource.makeFirst(eventTypes.GENERATE_AFTER_DATA, function (arg) {
 	}
 });
 
-eventSource.makeFirst(eventTypes.CHAT_COMPLETION_SETTINGS_READY, function (arg) {
+eventSource.makeFirst(eventTypes.CHAT_COMPLETION_SETTINGS_READY, function(arg) {
     if (!extensionSettings.enabled) return;
 
 	log(eventTypes.CHAT_COMPLETION_SETTINGS_READY, arg);
@@ -966,7 +1001,7 @@ function getEntryIcon(entry) {
 	return icon;
 }
 
-eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) {
+eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function(args) {
 	log(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, args);
 
 	if (!extensionSettings.enabled || !extensionSettings.features.showActivatedWiEntries) return;
@@ -1034,7 +1069,7 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 	}
 });
 
-eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEntries} */ args) {
+eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function(/** @type {ScannedWIEntries} */ args) {
 	log(eventTypes.WORLDINFO_SCAN_DONE, args);
 
 	if (!extensionSettings.enabled || !extensionSettings.features.showActivatedWiEntries) return;
@@ -1043,7 +1078,7 @@ eventSource.on(eventTypes.WORLDINFO_SCAN_DONE, function (/** @type {ScannedWIEnt
 
 // * MARK:Initialize Extension
 
-$(async function () {
+eventSource.once(eventTypes.APP_INITIALIZED, async function() {
 	if (!context().extensionSettings[extensionName]) {
 	    context().extensionSettings[extensionName] = structuredClone(defaultSettings);
 	}
