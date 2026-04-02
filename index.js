@@ -47,7 +47,7 @@ toastr.info
  *
  * @typedef {Object} ScannedWIEntries
  * @property {Object} [activated]
- * @property {Map} [activated.entries]
+ * @property {Map<string, Object>} [activated.entries]
  * @property {Object} [new]
  * @property {Array<WIEntry>} [new.successful]
  */
@@ -1029,7 +1029,7 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function(args) {
 	});
 
 	for (const entry of activatedWiEntries) {
-		const worldID = entry.world.toLowerCase().replaceAll(/\s+/g, "_");
+		const worldID = entry.world.toLowerCase().replace(/\s+/g, "_");
 
 		/** @type {EntryGroup} */
 		let entryGroup = entriesGroupedByWorld[worldID] ?? false;
