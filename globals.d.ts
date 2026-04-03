@@ -1,4 +1,6 @@
-export {}
+/// <reference path="../../../../global.d.ts" />
+
+export {};
 
 declare global {
     type ExtensionSettingsFeatures = {
@@ -39,4 +41,4 @@ declare global {
             successful: WIEntry[];
         };
     };
-}
+};
