@@ -728,7 +728,7 @@ function registerSlashCommands() {
                     </li>
                 </ul>
             </div>`,
-        }),
+        })
     );
 
     SlashCommandParser.addCommandObject(
@@ -764,7 +764,7 @@ function registerSlashCommands() {
                     </li>
                 </ul>
             </div>`,
-        }),
+        })
     );
 
     SlashCommandParser.addCommandObject(
@@ -800,7 +800,7 @@ function registerSlashCommands() {
                     </li>
                 </ul>
             </div>`,
-        }),
+        })
     );
 
     SlashCommandParser.addCommandObject(
@@ -820,7 +820,7 @@ function registerSlashCommands() {
                     </li>
                 </ul>
             </div>`,
-        }),
+        })
     );
 }
 
