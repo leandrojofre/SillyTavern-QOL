@@ -1,8 +1,4 @@
-/// <reference path="../../../../global.d.ts" />
-
-export {};
-
-declare global {
+declare namespace QualityOfLife {
     type ExtensionSettingsFeatures = {
         quickRegenerate: boolean;
         quickRegenerateAutoHide: boolean;

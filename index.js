@@ -2,6 +2,11 @@ import { getUserAvatar } from '../../../personas.js';
 import { formatCharacterAvatar, isGenerating } from '../../../../script.js';
 import { group_activation_strategy } from '../../../group-chats.js';
 import { copyText } from '../../../utils.js';
+import { commonEnumProviders } from '../../../slash-commands/SlashCommandCommonEnumsProvider.js';
+
+/** @typedef {QualityOfLife.ExtensionSettings} ExtensionSettings */
+/** @typedef {QualityOfLife.WIEntry} WIEntry */
+/** @typedef {QualityOfLife.ScannedWIEntries} ScannedWIEntries */
 
 // * MARK:Extension variables
 
@@ -20,6 +25,7 @@ const {
     characterId,
     characters,
     powerUserSettings,
+    tags,
     SlashCommandEnumValue,
     SlashCommandParser,
     SlashCommand,
@@ -527,10 +533,23 @@ async function loadQOLFeatures() {
 
 // * MARK:Slash Commands
 
+const tagFilterBoxes = [{
+    selector: '#unaddedCharList .rm_tag_filter',
+    enum: new SlashCommandEnumValue('add-member-list', 'List for adding group members', 'enum')
+}, {
+    selector: '#currentGroupMembers .rm_tag_filter',
+    enum: new SlashCommandEnumValue('member-list', 'List for adding group members', 'enum')
+}, {
+    selector: '#charListFixedTop .rm_tag_filter',
+    enum: new SlashCommandEnumValue('character-list', 'List for adding group members', 'enum')
+}];
+
 const ENUMS_PROVIDER = {
     customSamplersSet: () => Object
         .keys(extensionSettings.customSamplers ?? {})
         .map(key => new SlashCommandEnumValue(key)),
+
+    tagFilterBoxes: () => tagFilterBoxes.map(filter => filter.enum),
 };
 
 /**
@@ -817,6 +836,98 @@ function registerSlashCommands() {
                 <ul>
                     <li>
                         <pre><code>/qol-flush-custom-samplers</code></pre>
+                    </li>
+                </ul>
+            </div>`,
+        })
+    );
+
+    SlashCommandParser.addCommandObject(
+        SlashCommand.fromProps({
+            name: 'qol-set-tag-filter',
+            callback: function(args, tag) {
+                const { filter = 'add-member-list' } = args;
+                const tagObj = tags.find(t => t.name === tag);
+
+                if (!tagObj?.id) return '';
+
+                const filterBoxFind = tagFilterBoxes.find(filterBox => filterBox.enum.value === filter)?.selector;
+                const filterSelector = filterBoxFind ?? tagFilterBoxes[0].selector;
+                const tagSelector = `${filterSelector} #${tagObj.id}`;
+
+                $(tagSelector)
+                    .attr('data-toggle-state', 'UNDEFINED')
+                    .trigger('click');
+
+                return tagObj.id;
+            },
+            namedArgumentList: [
+                SlashCommandNamedArgument.fromProps({
+                    name: 'filter',
+                    description: 'The target box to apply the filter - <code>add-member-list</code> by default',
+                    enumProvider: ENUMS_PROVIDER.tagFilterBoxes,
+                })
+            ],
+            unnamedArgumentList: [
+                SlashCommandArgument.fromProps({
+                    description: 'Name of the tag to apply for the selected tag filter.',
+                    typeList: [ARGUMENT_TYPE.STRING],
+                    isRequired: true,
+                    enumProvider: commonEnumProviders.tags(),
+                }),
+            ],
+            returns: 'void',
+            helpString: `
+            <div>
+                Adds a tag for the selected list filter. By default, the list to add group members on groups is targeted.
+            </div>
+
+            <div>
+                <strong>Example</strong>
+                <ul>
+                    <li>
+                        <pre><code>/qol-set-tag-filter Hunter</code></pre>
+                    </li>
+                    <li>
+                        <pre><code>/qol-set-tag-filter filter=character-list Hunter</code></pre>
+                    </li>
+                </ul>
+            </div>`,
+        })
+    );
+
+    SlashCommandParser.addCommandObject(
+        SlashCommand.fromProps({
+            name: 'qol-flush-tag-filter',
+            callback: function (args) {
+                const { filter = 'add-member-list' } = args;
+
+                const filterBoxFind = tagFilterBoxes.find(filterBox => filterBox.enum.value === filter)?.selector;
+                const filterSelector = filterBoxFind ?? tagFilterBoxes[0].selector;
+
+                $(`${filterSelector} .tag.clearAllFilters`).trigger('click');
+                return '';
+            },
+            namedArgumentList: [
+                SlashCommandNamedArgument.fromProps({
+                    name: 'filter',
+                    description: 'The target box to apply the filter - <code>add-member-list</code> by default',
+                    enumProvider: ENUMS_PROVIDER.tagFilterBoxes,
+                })
+            ],
+            helpString: `
+            <div>
+                Clears all tag filters for the selected list. By default, the list to add group members on groups is targeted.
+            </div>
+
+            <div>
+                <strong>Example</strong>
+                <ul>
+                    <li>
+                        <pre><code>/qol-flush-tag-filter</code></pre>
+                    </li>
+                    <li>
+                        <pre><code>/qol-flush-tag-filter filter=character-list Hunter</code></pre>
                     </li>
                 </ul>
             </div>`,
