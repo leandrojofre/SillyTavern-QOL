@@ -555,7 +555,7 @@ const ENUMS_PROVIDER = {
         .keys(extensionSettings.customSamplers ?? {})
         .map(key => new SlashCommandEnumValue(key)),
 
-    tagFilterBoxes: () => tagFilterBoxes.map(filter => filter.enum),
+    tagFilterBoxes: tagFilterBoxes.map(filter => filter.enum),
 };
 
 /**
@@ -871,7 +871,7 @@ function registerSlashCommands() {
                 SlashCommandNamedArgument.fromProps({
                     name: 'filter',
                     description: 'The target box to apply the filter - <code>add-member-list</code> by default',
-                    enumProvider: ENUMS_PROVIDER.tagFilterBoxes,
+                    enumList: ENUMS_PROVIDER.tagFilterBoxes,
                 })
             ],
             unnamedArgumentList: [
@@ -918,7 +918,7 @@ function registerSlashCommands() {
                 SlashCommandNamedArgument.fromProps({
                     name: 'filter',
                     description: 'The target box to apply the filter - <code>add-member-list</code> by default',
-                    enumProvider: ENUMS_PROVIDER.tagFilterBoxes,
+                    enumList: ENUMS_PROVIDER.tagFilterBoxes,
                 })
             ],
             helpString: `
