@@ -529,6 +529,12 @@ async function loadQOLFeatures() {
         setClipboard(text);
         toastr.info('Sampler key sent to the clipboard', extensionName);
     });
+
+    $(document).on('click', '#chat .mes_timer', function (e) {
+        const tooltip = $(e.currentTarget).attr('title');
+
+        if (tooltip) toastr.info(tooltip, extensionName, {toastClass: 'qol-tooltip-toast'});
+    });
 }
 
 // * MARK:Slash Commands
