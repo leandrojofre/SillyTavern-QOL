@@ -197,3 +197,8 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 		background-color: color-mix(in srgb, var(--SmartThemeBlurTintColor), var(--black30a));
 	}
 }
+
+.qol-tooltip-toast {
+	width: fit-content !important;
+	white-space: pre-wrap;
+}
