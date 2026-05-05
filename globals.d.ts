@@ -37,4 +37,8 @@ declare namespace QualityOfLife {
             successful: WIEntry[];
         };
     };
+
+    type HTMLTemplateGetOptions = {
+        clone?: boolean;
+    };
 };
