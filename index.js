@@ -7,6 +7,7 @@ import { commonEnumProviders } from '../../../slash-commands/SlashCommandCommonE
 /** @typedef {QualityOfLife.ExtensionSettings} ExtensionSettings */
 /** @typedef {QualityOfLife.WIEntry} WIEntry */
 /** @typedef {QualityOfLife.ScannedWIEntries} ScannedWIEntries */
+/** @typedef {QualityOfLife.HTMLTemplateGetOptions} HTMLTemplateGetOptions */
 
 // * MARK:Extension variables
 
@@ -70,14 +71,50 @@ audioGenerationError.src = `${extensionFolderPath}/assets/audio/error-sound.mp3`
 let preventNextAbortSound = false;
 
 const HTML_TEMPLATES = {
-    /** @returns {Promise<JQuery<HTMLElement>>} */
-    get: async function (fileName = 'settings') {
-        const file = HTML_TEMPLATES[fileName] ?? await $.get(`${extensionFolderPath}/source/html/templates/${fileName}.html`);
+	/**
+     * @param {string} [fileName]
+     * @param {HTMLTemplateGetOptions} [options]
+     * @returns {Promise<JQuery<HTMLElement>>}
+     */
+    get: async function(fileName = 'settings', {clone = false} = {}) {
+		const extensionFolderPath = HTML_TEMPLATES.extensionFolderPath;
 
-        if (!HTML_TEMPLATES[fileName]) HTML_TEMPLATES[fileName] = file;
+		if (!HTML_TEMPLATES[fileName]) {
+			try {
+				await $.get(`${extensionFolderPath}/source/templates/${fileName}.html`)
+					.done(function(response) {
+						HTML_TEMPLATES[fileName] = $(response);
+					})
+			} catch (err) {
+				const is404 = err?.status === 404;
 
-        return $(file);
+				error('Template rendering error.', {err});
+
+				if (is404 && !HTML_TEMPLATES.didFallbackFetch) {
+					HTML_TEMPLATES.extensionFolderPath = `${HTML_TEMPLATES.extensionFolderPath}.git`;
+					HTML_TEMPLATES.didFallbackFetch = true;
+
+					error(`Failed to fetch ${fileName}.html, attempting fallback path...`, {err, HTML_TEMPLATES: structuredClone({
+						extensionFolderPath: HTML_TEMPLATES.extensionFolderPath,
+						didFallbackFetch: HTML_TEMPLATES.didFallbackFetch,
+					})});
+
+					return await HTML_TEMPLATES.get(fileName, {clone});
+				}
+			}
+        }
+
+        const $file = HTML_TEMPLATES[fileName];
+
+        if (!$file) {
+            toastr.warning(t`HTML template could not be loaded`, extensionName);
+            return $();
+        }
+
+		return clone ? $file.clone() : $file;
     },
+	didFallbackFetch: false,
+	extensionFolderPath,
 };
 
 // * MARK:Debugs methods
@@ -569,7 +606,7 @@ function slashCommandError(message = '') {
 }
 
 async function updateCustomSamplersList() {
-    const $samplerRowTemplate = await HTML_TEMPLATES.get('customSamplerRow');
+    const $samplerRowTemplate = await HTML_TEMPLATES.get('customSamplerRow', {clone: true});
     const $samplerList = $('#qol-custom-samplers-list');
 
     $samplerList.empty();
@@ -1071,7 +1108,7 @@ eventSource.on(eventTypes.GENERATE_AFTER_COMBINE_PROMPTS, async function (args) 
 
     if (!extensionSettings.enabled || !extensionSettings.features.showActivatedWiEntries) return;
 
-    const loreEntriesList = (await HTML_TEMPLATES.get('activatedLoreEntries')).clone();
+    const loreEntriesList = await HTML_TEMPLATES.get('activatedLoreEntries', {clone: true});
     const loreEntryGroupTemplate = $(loreEntriesList).find('.qol-activated-world.template');
     const loreEntryItemTemplate = $(loreEntriesList).find('.qol-activated-entry.template');
     const currentList = $('#qol-activated-worlds-list');
