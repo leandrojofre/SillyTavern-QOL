@@ -302,7 +302,7 @@ function triggerRegenerate() {
     log('triggerRegenerate()');
 }
 
-/**    Zooms in on the avatar of the character who is speaking. */
+/** Zooms in on the avatar of the character who is speaking. */
 function zoomCharacterAvatar() {
     if (!extensionSettings.enabled ||
         !extensionSettings.features.zoomCharacterAvatar ||
@@ -372,9 +372,10 @@ function onBeforeUnload(e) {
     e.returnValue = '';
 }
 
-/**    Creates and insert any button provided by the extension. */
+/** Creates and insert any button provided by the extension. */
 async function loadQOLFeatures() {
     // Quick Regenerate
+
     const $rightSendForm = document.getElementById('rightSendForm');
     const $send_but = document.getElementById('send_but');
 
@@ -386,11 +387,10 @@ async function loadQOLFeatures() {
     $rightSendForm.insertBefore($regenerate_but, $send_but);
     $('#regenerate_but').on('click', triggerRegenerate);
 
-    log('loadQOLFeatures()', 'quickRegenerate');
     hideRegenerateButton(!extensionSettings.features.quickRegenerate);
 
     // Auto zoom last message Avatar
-    log('loadQOLFeatures()', 'zoomCharacterAvatar');
+
     const zoomedAvatar = await HTML_TEMPLATES.get('zoomedAvatar');
 
     $('#sheld').append(zoomedAvatar);
@@ -424,12 +424,16 @@ async function loadQOLFeatures() {
 
     zoomCharacterAvatar();
 
+    // Custom Request Samplers
+
     $(document).on('click', '#qol-custom-samplers-list .sampler-key', function (e) {
         const text = $(e.currentTarget)?.text() ?? '';
 
         setClipboard(text);
         toastr.info('Sampler key sent to the clipboard', extensionName);
     });
+
+    // Show Request Information
 
     $(document).on('click', '#chat .mes_timer', function (e) {
         const tooltip = $(e.currentTarget).attr('title');
@@ -449,22 +453,20 @@ globalThis.QualityOfLife = {
 // * MARK:Extension settings
 
 const settingsCallbacks = {
-    /**    Enables/Disables the extension */
+    /** Enables/Disables the extension */
     enabled: () => {
         settingsCallbacks.quickRegenerate(!$('#qol-activate-extension').prop('checked'));
         settingsCallbacks.zoomCharacterAvatar(!$('#qol-activate-extension').prop('checked'));
     },
 
-    /**    Enables/Disables the quick regenerate button.
-        @param {boolean} [forceUnable=false]
-        forceUnable:
-        - If true, forces features.quickRegenerate to be disabled.
-    */
+    /** Enables/Disables the quick regenerate button.
+     * @param {boolean} [forceUnable=false] If true, forces features.quickRegenerate to be disabled.
+     */
     quickRegenerate: function (forceUnable = false) {
         hideRegenerateButton(forceUnable || !extensionSettings.features.quickRegenerate);
     },
 
-    /**    Enable/Disable the message generation error sound. */
+    /** Enable/Disable the message generation error sound. */
     playErrorSound: function () {
         if (
             !extensionSettings.enabled ||
@@ -493,11 +495,9 @@ const settingsCallbacks = {
         });
     },
 
-    /**    Enables/Disables the zoom in avatar feature.
-        @param {boolean} [forceUnable=false]
-        forceUnable:
-        - If true, forces features.quickRegenerate to be disabled.
-    */
+    /** Enables/Disables the zoom in avatar feature.
+     * @param {boolean} [forceUnable=false] If true, forces features.zoomCharacterAvatar to be disabled.
+     */
     zoomCharacterAvatar: function (forceUnable = false) {
         const enableFeature = !forceUnable && extensionSettings.features.zoomCharacterAvatar;
 
@@ -505,6 +505,14 @@ const settingsCallbacks = {
         setRootCSSVariables('--qol-st-zoomed-avatar-container-display', enableFeature ? 'none' : 'flex');
 
         if (enableFeature) zoomCharacterAvatar();
+    },
+
+    zoomedAvatarInLeftPanel: async function () {
+        const zoomedAvatar = await HTML_TEMPLATES.get('zoomedAvatar');
+        const moveToLeftPanel = extensionSettings.features.zoomedAvatarInLeftPanel;
+
+        if (moveToLeftPanel) $('#left-nav-panel .scrollableInner').prepend(zoomedAvatar.detach());
+        else $('#sheld').append(zoomedAvatar.detach());
     },
 
     showActivatedWiEntries: function () {
@@ -520,7 +528,7 @@ const settingsCallbacks = {
     },
 };
 
-function settingsBooleanButton(event) {
+async function settingsBooleanButton(event) {
     const target = event.target;
     const value = Boolean($(target).prop('checked'));
     const setting = target.getAttribute('qol-setting');
@@ -530,13 +538,13 @@ function settingsBooleanButton(event) {
         extensionSettings.features[setting.replace('features/', '')] = value;
     else extensionSettings[setting] = value;
 
-    if (callback) callback();
+    if (callback) await callback();
 
-    log('toggleSetting ' + setting, value);
+    log(`${setting} = ${value}`);
     saveSettingsDebounced();
 }
 
-function settingsNumberButton(event) {
+async function settingsNumberButton(event) {
     const target = event.target;
     const value = Number($(target).prop('value'));
     const setting = target.getAttribute('qol-setting');
@@ -546,9 +554,9 @@ function settingsNumberButton(event) {
         extensionSettings.features[setting.replace('features/', '')] = value;
     else extensionSettings[setting] = value;
 
-    if (callback) callback();
+    if (callback) await callback();
 
-    log('toggleSetting ' + setting, value);
+    log(`${setting} = ${value}`);
     saveSettingsDebounced();
 }
 
@@ -633,8 +641,8 @@ eventSource.once(eventTypes.APP_INITIALIZED, async function () {
         }
     }
 
-    await loadSettingsMenu();
     await loadQOLFeatures();
+    await loadSettingsMenu();
 
     eventSources.init();
     slashCommands.init();

@@ -172,10 +172,19 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 
 #qol-zoomed-avatar-container {
 	display: var(--qol-zoomed-avatar-container-display);
+}
+
+#sheld #qol-zoomed-avatar-container {
 	position: fixed;
 	bottom: 0;
 	left: 0;
 	width: calc((100vw - var(--sheldWidth)) / 2 - 1px);
+}
+
+#left-nav-panel .scrollableInner #qol-zoomed-avatar-container {
+	position: relative;
+	margin-bottom: 5px;
+	width: 100%;
 }
 
 #qol-custom-samplers-list::after {
