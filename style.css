@@ -183,6 +183,7 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 
 #left-nav-panel .scrollableInner #qol-zoomed-avatar-container {
 	position: relative;
+	border: 1px solid var(--SmartThemeBorderColor);
 	margin-bottom: 5px;
 	width: 100%;
 }
