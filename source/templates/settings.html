@@ -5,19 +5,13 @@
 			<div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
 		</div>
 
-		<div id="qol-settings-window" class="inline-drawer-content" style="padding: 0.5vh;">
-
+		<div id="qol-settings-window" class="inline-drawer-content p-15px">
 			<div class="flex-container flex-column separator-bottom">
 				<b>General</b>
 
 				<label class="flex-container">
 					<input id="qol-activate-extension" qol-setting="enabled" type="checkbox" />
 					<span>Enable/Disable the extension</span>
-				</label>
-
-				<label class="flex-container">
-					<input id="qol-zoom-char-avatar" qol-setting="features/zoomCharacterAvatar" type="checkbox" />
-					<span>Automatically zooms in on the avatar of the character who is speaking</span>
 				</label>
 
 				<label class="flex-container" title="Chat Completions: It will collapse consecutive newlines for every prompt, including messages. Text Completions: It will collapse newlines for the whole prompt string. This setting was made for Chat Completions and it is recommended for that API; for Text Completions use the Collapse Consecutive Newlines setting from the AI Response Formatting panel." data-i18n="[title]Chat Completions: It will collapse consecutive newlines for every prompt, including messages. Text Completions: It will collapse newlines for the whole prompt string. This setting was made for Chat Completions and it is recommended for that API; for Text Completions use the Collapse Consecutive Newlines setting from the AI Response Formatting panel.">
@@ -42,6 +36,20 @@
 					<i class="right_menu_button fa-solid fa-circle-exclamation interactable" tabindex="0"></i>
 					<i class="fa-solid fa-mobile-screen-button"></i>
 					<span>Prevent leaving the tab on go back gesture</span>
+				</label>
+			</div>
+
+			<div class="flex-container flex-column separator-bottom">
+				<b>Avatar</b>
+
+				<label class="flex-container">
+					<input id="qol-zoom-char-avatar" qol-setting="features/zoomCharacterAvatar" type="checkbox" />
+					<span>Automatically zooms in on the avatar of the character who is speaking</span>
+				</label>
+
+				<label class="flex-container">
+					<input id="qol-zoom-zoomed-avatar-in-left-panel" qol-setting="features/zoomedAvatarInLeftPanel" type="checkbox" />
+					<span>Place the zoomed avatar container into the left panel</span>
 				</label>
 			</div>
 

@@ -60,6 +60,10 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 		padding: 5px;
 	}
 
+	.p-15px {
+		padding: 15px;
+	}
+
 	.m-10px {
 		margin: 10px;
 	}

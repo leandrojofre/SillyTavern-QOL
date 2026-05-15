@@ -4,6 +4,7 @@ declare namespace QualityOfLife {
         quickRegenerateAutoHide: boolean;
         playErrorSound: boolean;
         zoomCharacterAvatar: boolean;
+        zoomedAvatarInLeftPanel: boolean;
         simpleUserInput: boolean;
         showActivatedWiEntries: boolean;
         collapseNewlines: boolean;
