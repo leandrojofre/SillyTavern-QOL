@@ -337,7 +337,7 @@ function init() {
             name: 'qol-set-tag-filter',
             callback: function(args, tag) {
                 const { filter = 'add-member-list' } = args;
-                const tagObj = tags.find(t => t.name === tag);
+                const tagObj = tags.find(t => t.id === tag) ?? tags.find(t => t.name === tag);
 
                 if (!tagObj?.id) return '';
 
@@ -360,7 +360,7 @@ function init() {
             ],
             unnamedArgumentList: [
                 SlashCommandArgument.fromProps({
-                    description: 'Name of the tag to apply for the selected tag filter.',
+                    description: 'Name (or ID) of the tag to apply for the selected tag filter.',
                     typeList: [ARGUMENT_TYPE.STRING],
                     isRequired: true,
                     enumProvider: commonEnumProviders.tags(),
