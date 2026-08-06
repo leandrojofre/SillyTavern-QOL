@@ -1,4 +1,10 @@
 declare namespace QualityOfLife {
+    type UserCharacter = {
+        name: string;
+        avatar: string;
+        is_user: boolean;
+    };
+
     type ExtensionSettingsFeatures = {
         quickRegenerate: boolean;
         quickRegenerateAutoHide: boolean;
@@ -41,5 +47,28 @@ declare namespace QualityOfLife {
 
     type HTMLTemplateGetOptions = {
         clone?: boolean;
+    };
+
+    type GetStatusMapOptions = {
+        onlyEnabled?: boolean;
+        onlyDetached?: boolean;
+    }
+
+    type GlobalInterfaceExtensions = {
+        StatUsMaximus?: ExternalExtension<'StatUsMaximus'>;
+    };
+
+    type ExtensionKeys = keyof GlobalInterfaceExtensions;
+
+    type ExternalExtension<Name extends ExtensionKeys = ExtensionKeys> = import('./src/classes/ExternalExtension.js').ExternalExtension<Name>;
+
+    type GlobalInterface = {
+        extensions: GlobalInterfaceExtensions,
+        ext: <K extends ExtensionKeys> (key: K) => GlobalInterfaceExtensions[K];
+        getStatusAvatarMap: (options?: GetStatusMapOptions) => Map<string, StatUsMaximus.Status>;
+        log: (...args: any) => void;
+        debug: (...args: any) => void;
+        error: (...args: any) => void;
+        extensionName: 'Quality of Life';
     };
 };

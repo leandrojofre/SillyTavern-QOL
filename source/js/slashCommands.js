@@ -2,7 +2,7 @@ import {
     // Native
     extensionSettings,
     HTML_TEMPLATES,
-    extensionName,
+    extensionNameFull,
     // ST Imports
     lodash,
     saveSettingsDebounced,
@@ -11,7 +11,6 @@ import {
     ARGUMENT_TYPE,
     SlashCommand,
     SlashCommandParser,
-    SlashCommandEnumValue,
     SlashCommandArgument,
     SlashCommandNamedArgument,
 } from '../../index.js';
@@ -21,12 +20,37 @@ export {
     updateCustomSamplersList,
 };
 
+const {
+    SlashCommandEnumValue,
+} = SillyTavern.getContext();
+
+const tagFilterBoxes = [{
+    selector: '#unaddedCharList .rm_tag_filter',
+    enum: new SlashCommandEnumValue('add-member-list', 'List for adding group members', 'enum')
+}, {
+    selector: '#currentGroupMembers .rm_tag_filter',
+    enum: new SlashCommandEnumValue('member-list', 'List for adding group members', 'enum')
+}, {
+    selector: '#charListFixedTop .rm_tag_filter',
+    enum: new SlashCommandEnumValue('character-list', 'List for adding group members', 'enum')
+}];
+
+const ENUMS_PROVIDER = {
+    customSamplersSet: () => Object
+        .keys(extensionSettings.customSamplers ?? {})
+        .map(key => new SlashCommandEnumValue(key)),
+
+    tagFilterBoxes: tagFilterBoxes.map(filter => filter.enum),
+};
+
+// * MARK:Methods
+
 /**
  * @param {string} message
  * @returns {string}
  */
 function slashCommandError(message = '') {
-    toastr.error(message, extensionName);
+    toastr.error(message, extensionNameFull);
     QualityOfLife.error('SlashCommandError:', message);
     return '';
 }
@@ -169,27 +193,9 @@ function flushCustomSamplersCommand() {
     return '';
 }
 
-// MARK:init
+// * MARK:Init
 
 function init() {
-    const tagFilterBoxes = [{
-        selector: '#unaddedCharList .rm_tag_filter',
-        enum: new SlashCommandEnumValue('add-member-list', 'List for adding group members', 'enum')
-    }, {
-        selector: '#currentGroupMembers .rm_tag_filter',
-        enum: new SlashCommandEnumValue('member-list', 'List for adding group members', 'enum')
-    }, {
-        selector: '#charListFixedTop .rm_tag_filter',
-        enum: new SlashCommandEnumValue('character-list', 'List for adding group members', 'enum')
-    }];
-
-    const ENUMS_PROVIDER = {
-        customSamplersSet: () => Object
-            .keys(extensionSettings.customSamplers ?? {})
-            .map(key => new SlashCommandEnumValue(key)),
-
-        tagFilterBoxes: tagFilterBoxes.map(filter => filter.enum),
-    };
 
     SlashCommandParser.addCommandObject(
         SlashCommand.fromProps({

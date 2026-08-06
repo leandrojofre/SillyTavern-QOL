@@ -4,6 +4,7 @@ import { group_activation_strategy } from '../../../group-chats.js';
 import { copyText } from '../../../utils.js';
 import { commonEnumProviders } from '../../../slash-commands/SlashCommandCommonEnumsProvider.js';
 
+import { ExternalExtension } from './source/classes/ExternalExtension.js';
 import * as eventSources from './source/js/eventSources.js';
 import * as slashCommands from './source/js/slashCommands.js';
 
@@ -13,7 +14,7 @@ import * as slashCommands from './source/js/slashCommands.js';
 export {
     // Native
     extensionSettings,
-    extensionName,
+    extensionNameFull,
     HTML_TEMPLATES,
     hideRegenerateButton,
     zoomCharacterAvatar,
@@ -30,7 +31,6 @@ export {
     ARGUMENT_TYPE,
     SlashCommand,
     SlashCommandParser,
-    SlashCommandEnumValue,
     SlashCommandArgument,
     SlashCommandNamedArgument,
 };
@@ -38,6 +38,7 @@ export {
 // * MARK:Extension variables
 
 const context = () => SillyTavern.getContext();
+
 const {
     stopGeneration,
     getThumbnailUrl,
@@ -53,9 +54,8 @@ const {
     characters,
     powerUserSettings,
     tags,
-    SlashCommandEnumValue,
-    SlashCommandParser,
     SlashCommand,
+    SlashCommandParser,
     SlashCommandArgument,
     SlashCommandNamedArgument,
     ARGUMENT_TYPE,
@@ -67,11 +67,12 @@ const {
     yaml,
 } = SillyTavern.libs;
 
-const extensionName = 'SillyTavern-QOL';
-const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+const extensionName = 'Quality of Life';
+const extensionNameFull = 'SillyTavern-QOL';
+const extensionFolderPath = `scripts/extensions/third-party/${extensionNameFull}`;
 
 /** @type {ExtensionSettings} */
-const extensionSettings = extension_settings[extensionName];
+const extensionSettings = extension_settings[extensionNameFull];
 
 /** @type {ExtensionSettings} */
 const defaultSettings = {
@@ -91,6 +92,11 @@ const defaultSettings = {
     customSamplers: {},
     debug: false,
 };
+
+const rootCSSVars = {
+    zoomedAvatarDisplay: '--qol-zoomed-avatar-container-display',
+    zoomedAvatarDisplayST: '--qol-st-zoomed-avatar-container-display',
+}
 
 const originalConsoleLog = console.log;
 const originalToastrError = toastr.error;
@@ -137,7 +143,7 @@ const HTML_TEMPLATES = {
         const $file = HTML_TEMPLATES[fileName];
 
         if (!$file) {
-            toastr.warning(t`HTML template could not be loaded`, extensionName);
+            toastr.warning(t`HTML template ${fileName} could not be loaded`, extensionName);
             return $();
         }
 
@@ -169,9 +175,15 @@ function error(...mess) {
 
 // * MARK:Extension methods
 
-function setRootCSSVariables(key = '', value = '') {
+/**
+ * @param {keyof rootCSSVars} key
+ * @param {string} [value]
+ * @returns {void}
+ */
+function setRootCSSVariables(key, value = '') {
     if (!key) return;
-    document.documentElement.style.setProperty(key, value);
+    const variableName = rootCSSVars[key];
+    document.documentElement.style.setProperty(variableName, value);
 }
 
 /**
@@ -184,31 +196,66 @@ async function setClipboard(text = '') {
 }
 
 /**
- * @param {Object} mess
- * @returns {boolean|Object}
+ * @param {string} search
+ * @param {object} [options]
+ * @param {boolean} [options.allowAvatar]
+ * @param {boolean} [options.preferMembers]
+ * @return {Character|QualityOfLife.UserCharacter}
+ */
+function findCharacter(search, {allowAvatar = true} = {}) {
+    const {characters, groupId, groups} = context();
+    const group = groupId ? groups.find(g => g.id === groupId) : null;
+    const members = group ? characters.filter(c => group.members.includes(c.avatar)) : [];
+    let character;
+
+    search = String(search).trim();
+
+    if (allowAvatar) character = members.find(m => m.avatar === search);
+    if (allowAvatar && !character) character = characters.find(c => c.avatar === search);
+
+    if (!character) character = members.find(m => m.name === search);
+    if (!character) character = characters.find(c => c.name === search);
+
+    if (!character) {
+        const statuses = QualityOfLife.getStatusAvatarMap();
+
+        character = statuses.get(search)?.getCharacter();
+    }
+
+    return character;
+}
+
+/**
+ * @param {ChatMessage} mess
+ * @returns {Character|QualityOfLife.UserCharacter}
  */
 function characterFromMessage(mess) {
-    let char = {};
+    let char;
 
-    if (mess.is_user)
+    if (mess.is_user) {
         char = Object.entries(powerUserSettings.personas)
-            .map(([k, v]) => ({ name: v, avatar: k }))
+            .map(([avatar, name]) => ({ name, avatar, is_user: true }))
             .find(p => p.name === mess.name);
-    else if (groupId === null && characterId !== undefined)
-        char = characters[characterId];
-    else
-        char = characters.find(c => c.name === mess.name);
+    } else if (mess.force_avatar) {
+        const url = new URL(mess.force_avatar, window.location.origin);
+        const urlFile = url?.searchParams.get('file') ?? '';
+
+        char = findCharacter(urlFile);
+    }
+
+    if (!char) char = findCharacter(mess.name);
 
     return char;
 }
 
 function getCharacterThumbnailFromMess(mess) {
-    const character = characterFromMessage(mess) ?? {};
+    const character = characterFromMessage(mess);
+    const hasFallback = Boolean(mess?.force_avatar && character);
     let fallbackAvatar = '';
     let avatar;
     let isUser;
 
-    if (!mess?.force_avatar) {
+    if (hasFallback) {
         avatar = character.avatar;
         isUser = mess.is_user === true;
         fallbackAvatar = getThumbnailUrl(isUser ? 'persona' : 'avatar', avatar);
@@ -227,38 +274,39 @@ function getCharacterThumbnailFromMess(mess) {
     return { char: character, avatar, fallbackAvatar };
 }
 
-function getLocalStorageVar(var_name, { def_value = '' }) {
-    let localStorageVisibility = localStorage.getItem(var_name);
+/**
+ * @param {string} var_name
+ * @param {Object} [options]
+ * @param {string} [options.def_value]
+ * @returns {string}
+ */
+function getLocalStorageVar(var_name, { def_value = '' } = {}) {
+    let value = localStorage.getItem(var_name);
 
-    if (!localStorageVisibility)
+    if (!value) {
         localStorage.setItem(var_name, def_value);
+        value = def_value;
+    }
 
-    localStorageVisibility = localStorage.getItem(var_name);
-
-    return localStorageVisibility;
+    return value;
 }
 
-/**    Modifies a function to wrap it in a function that first executes a callback and THEN the original function.
-    @param {Function} [originalFunction]
-    originalFunction:
-    - wrapMethod will not modify this method, it will only force it to execute extra code before its call.
-    @param {Function} [callback]
-    callback:
-    - Additional code to execute before the original method.
-    @returns Returns the original function, with the callback added.
-*/
+/**
+ * Modifies a function to wrap it in a function that first executes a callback and THEN the original function.
+ * @param {Function} [originalFunction] wrapMethod will not modify this method, it will only force it to execute extra code before its call.
+ * @param {Function} [callback] Additional code to execute before the original method.
+ * @returns Returns the original function, with the callback added.
+ */
 function wrapMethod(originalFunction, callback) {
     return function (...args) {
         callback(args);
-        originalFunction.apply(this, args);
+        return originalFunction.apply(this, args);
     };
 }
 
 /**
-    @param {HTMLAudioElement} audio
-    audio:
-    - The audio will not play if it is already playing.
-*/
+ * @param {HTMLAudioElement} audio The audio will not play if it is already playing.
+ */
 function playAudio(audio) {
     if (audio.currentTime === 0 || audio.ended) {
         audio.currentTime = 0;
@@ -267,12 +315,11 @@ function playAudio(audio) {
     }
 }
 
-/**    Hides the Continue button from the right side of the input area.
-    If the extension is disabled, 'hideRegenerateButton' will always hide the button.
-    @param {boolean} [hide=true]
-    hide:
-    - Whether or not to hide the retry button.
-*/
+/**
+ * Hides the Continue button from the right side of the input area.
+ * If the extension is disabled, 'hideRegenerateButton' will always hide the button.
+ * @param {boolean} [hide=true] Whether or not to hide the retry button.
+ */
 function hideRegenerateButton(hide = true) {
     if (
         extensionSettings.enabled &&
@@ -307,20 +354,20 @@ function zoomCharacterAvatar() {
     if (!extensionSettings.enabled ||
         !extensionSettings.features.zoomCharacterAvatar ||
         !context().chatId
-    ) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
+    ) return setRootCSSVariables('zoomedAvatarDisplay', 'none');
 
-    if (!chat?.length) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
+    if (!chat?.length) return setRootCSSVariables('zoomedAvatarDisplay', 'none');
 
     const lastMes = chat[chat.length - 1];
     const { char, avatar, fallbackAvatar } = getCharacterThumbnailFromMess(lastMes);
 
-    if (!avatar) return setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
+    if (!avatar) return setRootCSSVariables('zoomedAvatarDisplay', 'none');
 
     const localStorageVisibility = getLocalStorageVar('qol-zoomed-avatar-display', {
         def_value: extensionSettings.features.zoomCharacterAvatar ? 'flex' : 'none',
     });
 
-    setRootCSSVariables('--qol-zoomed-avatar-container-display', localStorageVisibility);
+    setRootCSSVariables('zoomedAvatarDisplay', localStorageVisibility);
     $('#qol-zoomed-avatar-image').data('fallback-img', fallbackAvatar);
     $('#qol-zoomed-avatar-image').prop('src', `${avatar}?cb=${Date.now()}`);
     $('#qol-zoomed-avatar-image').prop('alt', char?.name ?? '');
@@ -407,19 +454,19 @@ async function loadQOLFeatures() {
         $(this).prop('src', fallback);
     });
 
-    setRootCSSVariables('--qol-zoomed-avatar-container-display', getLocalStorageVar('qol-zoomed-avatar-display', {
+    setRootCSSVariables('zoomedAvatarDisplay', getLocalStorageVar('qol-zoomed-avatar-display', {
         def_value: extensionSettings.features.zoomCharacterAvatar ? 'flex' : 'none',
     }));
 
     $('#qol-zoomed-avatar-close').on('click', function () {
         localStorage.setItem('qol-zoomed-avatar-display', 'none');
-        setRootCSSVariables('--qol-zoomed-avatar-container-display', 'none');
+        setRootCSSVariables('zoomedAvatarDisplay', 'none');
     });
 
     $('#chat').on('click', '.mes .avatar', function () {
         if (!extensionSettings.enabled || !extensionSettings.features.zoomCharacterAvatar) return;
         localStorage.setItem('qol-zoomed-avatar-display', 'flex');
-        setRootCSSVariables('--qol-zoomed-avatar-container-display', 'flex');
+        setRootCSSVariables('zoomedAvatarDisplay', 'flex');
     });
 
     zoomCharacterAvatar();
@@ -444,10 +491,39 @@ async function loadQOLFeatures() {
 
 //  * MARK:Interface
 
+/** @type {QualityOfLife.GlobalInterface} */
 globalThis.QualityOfLife = {
+    extensions: {},
+    ext(key) {
+        const exists = key in QualityOfLife.extensions;
+
+        // @ts-ignore
+        if (!exists) QualityOfLife.extensions[key] = new ExternalExtension(key);
+
+        return QualityOfLife.extensions[key];
+    },
+    getStatusAvatarMap({onlyEnabled = true, onlyDetached = true} = {}) {
+        const ext = QualityOfLife.ext('StatUsMaximus');
+
+        if (!ext.enabled) return new Map();
+
+        /** @type {Map<string, StatUsMaximus.Status>} */
+        const avatarMap = new Map();
+        const statuses = ext.call('getStatuses') || [];
+
+        for (const s of statuses) {
+            if (onlyEnabled && !s.enabled) continue;
+            if (onlyDetached && !s.is_detached) continue;
+
+            avatarMap.set(s.avatar, s);
+        }
+
+        return avatarMap;
+    },
 	log,
 	debug,
 	error,
+    extensionName,
 };
 
 // * MARK:Extension settings
@@ -501,8 +577,8 @@ const settingsCallbacks = {
     zoomCharacterAvatar: function (forceUnable = false) {
         const enableFeature = !forceUnable && extensionSettings.features.zoomCharacterAvatar;
 
-        setRootCSSVariables('--qol-zoomed-avatar-container-display', enableFeature ? 'flex' : 'none');
-        setRootCSSVariables('--qol-st-zoomed-avatar-container-display', enableFeature ? 'none' : 'flex');
+        setRootCSSVariables('zoomedAvatarDisplay', enableFeature ? 'flex' : 'none');
+        setRootCSSVariables('zoomedAvatarDisplayST', enableFeature ? 'none' : 'flex');
 
         if (enableFeature) zoomCharacterAvatar();
     },
@@ -625,19 +701,19 @@ function displaySettings() {
 // * MARK:Initialize Extension
 
 eventSource.once(eventTypes.APP_INITIALIZED, async function () {
-    if (!context().extensionSettings[extensionName]) {
-        context().extensionSettings[extensionName] = structuredClone(defaultSettings);
+    if (!context().extensionSettings[extensionNameFull]) {
+        context().extensionSettings[extensionNameFull] = structuredClone(defaultSettings);
     }
 
     for (const key of Object.keys(defaultSettings)) {
-        if (context().extensionSettings[extensionName][key] === undefined) {
-            context().extensionSettings[extensionName][key] = defaultSettings[key];
+        if (context().extensionSettings[extensionNameFull][key] === undefined) {
+            context().extensionSettings[extensionNameFull][key] = defaultSettings[key];
         }
     }
 
     for (const key of Object.keys(defaultSettings.features)) {
-        if (context().extensionSettings[extensionName].features[key] === undefined) {
-            context().extensionSettings[extensionName].features[key] = defaultSettings.features[key];
+        if (context().extensionSettings[extensionNameFull].features[key] === undefined) {
+            context().extensionSettings[extensionNameFull].features[key] = defaultSettings.features[key];
         }
     }
 
