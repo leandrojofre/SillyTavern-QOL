@@ -604,35 +604,83 @@ const settingsCallbacks = {
     },
 };
 
-async function settingsBooleanButton(event) {
-    const target = event.target;
-    const value = Boolean($(target).prop('checked'));
-    const setting = target.getAttribute('qol-setting');
-    const callback = settingsCallbacks[setting.replace('features/', '')];
+/**
+ * @param {JQuery|HTMLElement} element
+ * @returns {{callback: Function; setting: string; isFeature: boolean}}
+ */
+function getSettingInputCallback(element) {
+    const $target = $(element);
+    const settingRaw = $target.attr(`qol-setting`);
+    const setting = settingRaw.replace('features/', '');
+    const isFeature = settingRaw.startsWith('features/');
+    const callback = settingsCallbacks[setting];
 
-    if (setting.includes('features/'))
-        extensionSettings.features[setting.replace('features/', '')] = value;
+    return {callback, setting, isFeature};
+}
+
+/** Changes a setting value and triggers a callback if there's any on settingsCallbacks. */
+function settingsBooleanButton(event) {
+    const $target = $(event.target);
+    const {callback, setting, isFeature} = getSettingInputCallback($target);
+    const value = Boolean($target.prop('checked'));
+
+    if (isFeature) extensionSettings.features[setting] = value;
     else extensionSettings[setting] = value;
 
-    if (callback) await callback();
+    if (callback) callback();
 
-    log(`${setting} = ${value}`);
+    log('toggleSetting ' + setting, value);
     saveSettingsDebounced();
 }
 
-async function settingsNumberButton(event) {
-    const target = event.target;
-    const value = Number($(target).prop('value'));
-    const setting = target.getAttribute('qol-setting');
-    const callback = settingsCallbacks[setting.replace('features/', '')];
+/** Changes a string setting value and triggers a callback if there's any on settingsCallbacks. */
+function settingsTextButton(event) {
+    const $target = $(event.target);
+    const {callback, setting, isFeature} = getSettingInputCallback($target);
+    const value = String($target.val());
+    const pattern = String($target.attr('pattern') || '');
 
-    if (setting.includes('features/'))
-        extensionSettings.features[setting.replace('features/', '')] = value;
+    if (pattern) {
+        const regex = new RegExp(pattern);
+        const isValid = regex.test(value);
+
+        if (!isValid) return;
+    }
+
+    if (isFeature) extensionSettings.features[setting] = value;
     else extensionSettings[setting] = value;
 
-    if (callback) await callback();
+    if (callback) callback();
 
-    log(`${setting} = ${value}`);
+    log('toggleSetting ' + setting, value);
+    saveSettingsDebounced();
+}
+
+/** Changes a number setting value and triggers a callback if there's any on settingsCallbacks. */
+function settingsNumberButton(event) {
+    const target = /** @type {HTMLSelectElement} */(event.target);
+    const {callback, setting, isFeature} = getSettingInputCallback(target);
+
+    const defValue = isFeature ? defaultSettings.features[setting] : defaultSettings[setting];
+    const raw_value = isNaN(Number(target.value)) ? defValue : Number(target.value);
+    const min = Number(target.getAttribute('min') || raw_value);
+    const max = Number(target.getAttribute('max') || raw_value);
+
+    const insideMinBoundary = min <= raw_value;
+    const insideMaxBoundary = max >= raw_value;
+
+    let value = raw_value;
+
+    if (!insideMinBoundary) value = min;
+    if (!insideMaxBoundary) value = max;
+
+    if (isFeature) extensionSettings.features[setting] = value;
+    else extensionSettings[setting] = value;
+
+    if (callback) callback();
+
+    $(target).val(value);
+    log('toggleSetting ' + setting, value);
     saveSettingsDebounced();
 }
 

@@ -31,16 +31,19 @@
 					<span>Show WI entries activated in the last generation</span>
 				</label>
 
-				<label class="flex-container" title="Made for mobile, it prevents closing the page if you accidentally press the &quot;got back&quot; button." data-i18n="[title]Made for mobile, it prevents closing the page if you accidentally press the &quot;got back&quot; button.">
+				<label class="flex-container" title="It prevents closing the page if you accidentally press the &quot;go back&quot; button." data-i18n="[title]It prevents closing the page if you accidentally press the &quot;go back&quot; button.">
 					<input id="qol-prevent-page-navigation" qol-setting="features/preventPageNavigation" type="checkbox" />
 					<i class="right_menu_button fa-solid fa-circle-exclamation interactable" tabindex="0"></i>
-					<i class="fa-solid fa-mobile-screen-button"></i>
+					<i class="fa-solid fa-mobile-screen-button" title="Mobile only"></i>
 					<span>Prevent leaving the tab on go back gesture</span>
 				</label>
 			</div>
 
 			<div class="flex-container flex-column separator-bottom">
-				<b>Avatar</b>
+				<b>
+                    <span>Avatar</span>
+                    <i class="fa-solid fa-desktop" title="Desktop only"></i>
+                </b>
 
 				<label class="flex-container">
 					<input id="qol-zoom-char-avatar" qol-setting="features/zoomCharacterAvatar" type="checkbox" />
@@ -75,7 +78,7 @@
 					<input type="range" id="qol-sound-volume" min="0" max="1" step="0.01" value="1" qol-setting="soundVolume">
 				</label>
 
-				<label class="flex-container" title="IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, 'console.log' was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return 'console.log' to its original state." data-i18n="[title]IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, 'console.log' was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return 'console.log' to its original state.">
+				<label class="flex-container" title="IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, console.log was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return console.log to its original state." data-i18n="[title]IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, console.log was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return console.log to its original state.">
 					<input id="qol-activate-error-sound" qol-setting="features/playErrorSound" type="checkbox" />
 					<i class="right_menu_button fa-solid fa-circle-exclamation interactable" tabindex="0"></i>
 					<span>Play an error sound when a chat generation fails</span>
