@@ -1,7 +1,7 @@
-/** @typedef {QualityOfLife.ExtensionKeys} ExtensionKeys */
+/** @typedef {QualityOfLife.GlobalInterfaceExtensions} GlobalInterfaceExtensions */
 
 /**
- * @template {ExtensionKeys} Name
+ * @template {keyof GlobalInterfaceExtensions} Name
  */
 export class ExternalExtension {
     /** @type {Name} */ key;

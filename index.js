@@ -10,6 +10,7 @@ import * as slashCommands from './source/js/slashCommands.js';
 
 /** @typedef {QualityOfLife.ExtensionSettings} ExtensionSettings */
 /** @typedef {QualityOfLife.HTMLTemplateGetOptions} HTMLTemplateGetOptions */
+/** @typedef {QualityOfLife.UserCharacter} UserCharacter */
 
 export {
     // Native
@@ -88,6 +89,7 @@ const defaultSettings = {
         showActivatedWiEntries: true,
         collapseNewlines: false,
         preventPageNavigation: false,
+        guessAvatarFromContent: false,
     },
     customSamplers: {},
     debug: false,
@@ -196,17 +198,38 @@ async function setClipboard(text = '') {
 }
 
 /**
+ * @returns {(Character|UserCharacter)[]}
+ */
+function getChatMembers() {
+    const {characters, characterId, groupId, groups} = context();
+    const group = groupId ? groups.find(g => g.id === groupId) : null;
+    const members = group ? characters.filter(c => group.members.includes(c.avatar)) : [];
+    const statuses = QualityOfLife.getStatusAvatarMap({onlyEnabled: false}).values().map(s => ({
+        ...s.getCharacter(),
+        avatar: s.getThumbnail(),
+    }));
+
+    if (!members.length && characterId) members.push(characters[characterId]);
+
+    return [
+        ...members,
+        ...statuses,
+    ];
+}
+
+/**
  * @param {string} search
  * @param {object} [options]
  * @param {boolean} [options.allowAvatar]
- * @param {boolean} [options.preferMembers]
- * @return {Character|QualityOfLife.UserCharacter}
+ * @param {(Character|UserCharacter)[]} [options.members]
+ * @return {Character|UserCharacter}
  */
-function findCharacter(search, {allowAvatar = true} = {}) {
-    const {characters, groupId, groups} = context();
-    const group = groupId ? groups.find(g => g.id === groupId) : null;
-    const members = group ? characters.filter(c => group.members.includes(c.avatar)) : [];
+function findCharacter(search, {allowAvatar = true, members = []} = {}) {
+    const {characters} = context();
     let character;
+
+    if (!members.length)
+        members = getChatMembers();
 
     search = String(search).trim();
 
@@ -216,18 +239,12 @@ function findCharacter(search, {allowAvatar = true} = {}) {
     if (!character) character = members.find(m => m.name === search);
     if (!character) character = characters.find(c => c.name === search);
 
-    if (!character) {
-        const statuses = QualityOfLife.getStatusAvatarMap();
-
-        character = statuses.get(search)?.getCharacter();
-    }
-
     return character;
 }
 
 /**
  * @param {ChatMessage} mess
- * @returns {Character|QualityOfLife.UserCharacter}
+ * @returns {Character|UserCharacter}
  */
 function characterFromMessage(mess) {
     let char;
@@ -248,18 +265,39 @@ function characterFromMessage(mess) {
     return char;
 }
 
+/**
+ * @param {ChatMessage} mess
+ */
 function getCharacterThumbnailFromMess(mess) {
-    const character = characterFromMessage(mess);
-    const hasFallback = Boolean(mess?.force_avatar && character);
+    const hasFallback = Boolean(mess?.force_avatar);
     let fallbackAvatar = '';
+    let character;
     let avatar;
     let isUser;
 
-    if (hasFallback) {
-        avatar = character.avatar;
-        isUser = mess.is_user === true;
-        fallbackAvatar = getThumbnailUrl(isUser ? 'persona' : 'avatar', avatar);
-    } else {
+    if (extensionSettings.features.guessAvatarFromContent && mess?.mes) {
+        /** @type {{member: Character|UserCharacter; id: number;}} */
+        let lastMember = {member: null, id: -1};
+        const members = getChatMembers();
+
+        for (const member of members) {
+            const id = mess.mes.lastIndexOf(member.name);
+
+            QualityOfLife.log({id, member, mess});
+
+            if (id > lastMember.id) lastMember = {id, member};
+        }
+
+        QualityOfLife.log({lastMember});
+
+        if (lastMember.member) {
+            character = lastMember.member;
+            avatar = lastMember.member.avatar;
+            isUser = false;
+        }
+    }
+
+    if (!avatar && hasFallback) {
         const url = new URL(mess.force_avatar, window.location.origin);
         const urlType = url?.searchParams.get('type') ?? '';
         const urlFile = url?.searchParams.get('file') ?? '';
@@ -269,9 +307,28 @@ function getCharacterThumbnailFromMess(mess) {
         fallbackAvatar = mess.force_avatar;
     }
 
-    avatar = isUser ? getUserAvatar(avatar) : formatCharacterAvatar(avatar);
+    if (!avatar) {
+        character = characterFromMessage(mess);
+        avatar = character?.avatar || '';
+        isUser = mess.is_user === true;
+        fallbackAvatar = avatar ? getThumbnailUrl(isUser ? 'persona' : 'avatar', avatar) : '';
+    }
 
-    return { char: character, avatar, fallbackAvatar };
+    if (!avatar) return {
+        char: null,
+        avatar: '',
+        fallbackAvatar: '',
+    };
+
+    if (!avatar.includes('/')) {
+        avatar = isUser ? getUserAvatar(avatar) : formatCharacterAvatar(avatar);
+    }
+
+    return {
+        char: character,
+        avatar,
+        fallbackAvatar
+    };
 }
 
 /**
@@ -334,8 +391,6 @@ function hideRegenerateButton(hide = true) {
     )
         $('#regenerate_but').css({ 'display': 'none' });
     else $('#regenerate_but').css({ 'display': 'flex' });
-
-    log('hideRegenerateButton()', $('#regenerate_but').css('display'));
 }
 
 /** If the chat is unlocked, 'regenerate' will be triggered. */
@@ -371,8 +426,6 @@ function zoomCharacterAvatar() {
     $('#qol-zoomed-avatar-image').data('fallback-img', fallbackAvatar);
     $('#qol-zoomed-avatar-image').prop('src', `${avatar}?cb=${Date.now()}`);
     $('#qol-zoomed-avatar-image').prop('alt', char?.name ?? '');
-
-    log('zoomCharacterAvatar()');
 }
 
 /** Automatically cancels the generation of a message after user input */
@@ -700,6 +753,7 @@ async function loadSettingsMenu() {
 
     $('#qol-zoom-char-avatar').on('input', settingsBooleanButton);
     $('#qol-zoom-zoomed-avatar-in-left-panel').on('input', settingsBooleanButton);
+    $('#qol-zoom-char-avatar-guess-avatar-from-content').on('input', settingsBooleanButton);
 
     $('#qol-quick-retry').on('input', settingsBooleanButton);
     $('#qol-quick-retry-autohide').on('input', settingsBooleanButton);
@@ -719,6 +773,7 @@ async function loadSettingsMenu() {
 
     $('#qol-zoom-char-avatar').prop('checked', extensionSettings.features.zoomCharacterAvatar).trigger('input');
     $('#qol-zoom-zoomed-avatar-in-left-panel').prop('checked', extensionSettings.features.zoomedAvatarInLeftPanel).trigger('input');
+    $('#qol-zoom-char-avatar-guess-avatar-from-content').prop('checked', extensionSettings.features.guessAvatarFromContent).trigger('input');
 
     $('#qol-quick-retry').prop('checked', extensionSettings.features.quickRegenerate).trigger('input');
     $('#qol-quick-retry-autohide').prop('checked', extensionSettings.features.quickRegenerateAutoHide).trigger('input');

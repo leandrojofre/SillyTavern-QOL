@@ -15,6 +15,7 @@ declare namespace QualityOfLife {
         showActivatedWiEntries: boolean;
         collapseNewlines: boolean;
         preventPageNavigation: boolean;
+        guessAvatarFromContent: boolean;
     };
 
     type ExtensionSettings = {
@@ -58,13 +59,11 @@ declare namespace QualityOfLife {
         StatUsMaximus?: ExternalExtension<'StatUsMaximus'>;
     };
 
-    type ExtensionKeys = keyof GlobalInterfaceExtensions;
-
-    type ExternalExtension<Name extends ExtensionKeys = ExtensionKeys> = import('./src/classes/ExternalExtension.js').ExternalExtension<Name>;
+    type ExternalExtension<Name extends keyof GlobalInterfaceExtensions = keyof GlobalInterfaceExtensions> = import('./source/classes/ExternalExtension.js').ExternalExtension<Name>;
 
     type GlobalInterface = {
         extensions: GlobalInterfaceExtensions,
-        ext: <K extends ExtensionKeys> (key: K) => GlobalInterfaceExtensions[K];
+        ext: <K extends keyof GlobalInterfaceExtensions> (key: K) => GlobalInterfaceExtensions[K];
         getStatusAvatarMap: (options?: GetStatusMapOptions) => Map<string, StatUsMaximus.Status>;
         log: (...args: any) => void;
         debug: (...args: any) => void;

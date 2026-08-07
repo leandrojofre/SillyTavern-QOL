@@ -83,6 +83,11 @@ function init() {
         hideRegenerateButton(false);
     });
 
+    eventSource.on(eventTypes.MESSAGE_EDITED, function () {
+        QualityOfLife.log(eventTypes.MESSAGE_EDITED);
+        zoomCharacterAvatar();
+    });
+
     eventSource.makeFirst(eventTypes.GENERATE_AFTER_DATA, function (arg) {
         if (!extensionSettings.enabled) return;
 
