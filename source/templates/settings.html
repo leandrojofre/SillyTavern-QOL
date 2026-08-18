@@ -1,23 +1,17 @@
 <div class="qol-extension-window">
 	<div class="inline-drawer">
 		<div class="inline-drawer-toggle inline-drawer-header">
-			<b>QOL</b>
+			<b>Quality of Life</b>
 			<div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
 		</div>
 
-		<div id="qol-settings-window" class="inline-drawer-content" style="padding: 0.5vh;">
-
+		<div id="qol-settings-window" class="inline-drawer-content p-15px">
 			<div class="flex-container flex-column separator-bottom">
 				<b>General</b>
 
 				<label class="flex-container">
 					<input id="qol-activate-extension" qol-setting="enabled" type="checkbox" />
 					<span>Enable/Disable the extension</span>
-				</label>
-
-				<label class="flex-container">
-					<input id="qol-zoom-char-avatar" qol-setting="features/zoomCharacterAvatar" type="checkbox" />
-					<span>Automatically zooms in on the avatar of the character who is speaking</span>
 				</label>
 
 				<label class="flex-container" title="Chat Completions: It will collapse consecutive newlines for every prompt, including messages. Text Completions: It will collapse newlines for the whole prompt string. This setting was made for Chat Completions and it is recommended for that API; for Text Completions use the Collapse Consecutive Newlines setting from the AI Response Formatting panel." data-i18n="[title]Chat Completions: It will collapse consecutive newlines for every prompt, including messages. Text Completions: It will collapse newlines for the whole prompt string. This setting was made for Chat Completions and it is recommended for that API; for Text Completions use the Collapse Consecutive Newlines setting from the AI Response Formatting panel.">
@@ -37,11 +31,34 @@
 					<span>Show WI entries activated in the last generation</span>
 				</label>
 
-				<label class="flex-container" title="Made for mobile, it prevents closing the page if you accidentally press the &quot;got back&quot; button." data-i18n="[title]Made for mobile, it prevents closing the page if you accidentally press the &quot;got back&quot; button.">
+				<label class="flex-container" title="It prevents closing the page if you accidentally press the &quot;go back&quot; button." data-i18n="[title]It prevents closing the page if you accidentally press the &quot;go back&quot; button.">
 					<input id="qol-prevent-page-navigation" qol-setting="features/preventPageNavigation" type="checkbox" />
 					<i class="right_menu_button fa-solid fa-circle-exclamation interactable" tabindex="0"></i>
-					<i class="fa-solid fa-mobile-screen-button"></i>
+					<i class="fa-solid fa-mobile-screen-button" title="Mobile only"></i>
 					<span>Prevent leaving the tab on go back gesture</span>
+				</label>
+			</div>
+
+			<div class="flex-container flex-column separator-bottom">
+				<b>
+                    <span>Avatar</span>
+                    <i class="fa-solid fa-desktop" title="Desktop only"></i>
+                </b>
+
+				<label class="flex-container">
+					<input id="qol-zoom-char-avatar" qol-setting="features/zoomCharacterAvatar" type="checkbox" />
+					<span>Automatically zooms in on the avatar of the character who is speaking</span>
+				</label>
+
+				<label class="flex-container">
+					<input id="qol-zoom-zoomed-avatar-in-left-panel" qol-setting="features/zoomedAvatarInLeftPanel" type="checkbox" />
+					<span>Place the zoomed avatar container into the left panel</span>
+				</label>
+
+				<label class="flex-container" title="It will try to guess the avatar file by searching names inside the message content until finding a match." data-i18n="[title]It will try to guess the avatar file by searching names inside the message content until finding a match.">
+					<input id="qol-zoom-char-avatar-guess-avatar-from-content" qol-setting="features/guessAvatarFromContent" type="checkbox" />
+					<i class="right_menu_button fa-solid fa-circle-exclamation interactable" tabindex="0"></i>
+					<span>Guess avatar from message content instead</span>
 				</label>
 			</div>
 
@@ -67,7 +84,7 @@
 					<input type="range" id="qol-sound-volume" min="0" max="1" step="0.01" value="1" qol-setting="soundVolume">
 				</label>
 
-				<label class="flex-container" title="IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, 'console.log' was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return 'console.log' to its original state." data-i18n="[title]IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, 'console.log' was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return 'console.log' to its original state.">
+				<label class="flex-container" title="IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, console.log was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return console.log to its original state." data-i18n="[title]IMPORTANT: If you are a developer, deactivate this option. To catch the errors and trigger the sound, console.log was rewritten, which causes all logs to point to the line of code in this extension where the log is overwritten. Deactivating this option will return console.log to its original state.">
 					<input id="qol-activate-error-sound" qol-setting="features/playErrorSound" type="checkbox" />
 					<i class="right_menu_button fa-solid fa-circle-exclamation interactable" tabindex="0"></i>
 					<span>Play an error sound when a chat generation fails</span>

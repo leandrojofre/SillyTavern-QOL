@@ -39,13 +39,25 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 		flex-direction: column;
 	}
 
-	.bg-black {
-		background-image: unset !important;
-    	background-color: var(--black30a);
-	}
+    .flex-1 {
+        flex: 1;
+    }
+
+    .align-items-start {
+        align-items: start;
+    }
+
+    .g-0 {
+        gap: 0;
+    }
 
 	.flex-container:not(.flex-column) {
 		align-items: center;
+	}
+
+	.bg-black {
+		background-image: unset !important;
+    	background-color: var(--black30a);
 	}
 
 	.gap-5px {
@@ -60,12 +72,24 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 		padding: 5px;
 	}
 
+	.p-15px {
+		padding: 15px;
+	}
+
 	.m-10px {
 		margin: 10px;
 	}
 
 	.mb-10px {
 		margin-bottom: 10px;
+	}
+
+    .w-100 {
+        width: 100%;
+    }
+
+	.max-h-20 {
+		max-height: 20vh;
 	}
 
 	.text-em-color {
@@ -76,6 +100,10 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 		color: var(--SmartThemeQuoteColor);
 	}
 
+    .fw-bold {
+        font-weight: bold;
+    }
+
 	.scroll {
 		--scrollbarTrackColor: rgb(255 255 255 / 10%);
 		max-height: 50vh;
@@ -85,10 +113,6 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 
 	.scroll::-webkit-scrollbar {
 		background-color: var(--scrollbarTrackColor);
-	}
-
-	.max-h-20 {
-		max-height: 20vh;
 	}
 
 	.bg-ui {
@@ -168,10 +192,20 @@ div.zoomed_avatar:has(.zoomed_avatar_img) {
 
 #qol-zoomed-avatar-container {
 	display: var(--qol-zoomed-avatar-container-display);
+}
+
+#sheld #qol-zoomed-avatar-container {
 	position: fixed;
 	bottom: 0;
 	left: 0;
 	width: calc((100vw - var(--sheldWidth)) / 2 - 1px);
+}
+
+#left-nav-panel .scrollableInner #qol-zoomed-avatar-container {
+	position: relative;
+	border: 1px solid var(--SmartThemeBorderColor);
+	margin-bottom: 5px;
+	width: 100%;
 }
 
 #qol-custom-samplers-list::after {
