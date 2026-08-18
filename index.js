@@ -424,6 +424,8 @@ function zoomCharacterAvatar() {
 
     if (!avatar) return setRootCSSVariables('zoomedAvatarDisplay', 'none');
 
+    QualityOfLife.lastZoomedCharacter = char?.name || '';
+
     const localStorageVisibility = getLocalStorageVar('qol-zoomed-avatar-display', {
         def_value: extensionSettings.features.zoomCharacterAvatar ? 'flex' : 'none',
     });
@@ -480,7 +482,7 @@ function onBeforeUnload(e) {
 
 /** Creates and insert any button provided by the extension. */
 async function loadQOLFeatures() {
-    // Quick Regenerate
+    const { macros } = context();
 
     const $rightSendForm = document.getElementById('rightSendForm');
     const $send_but = document.getElementById('send_but');
@@ -546,6 +548,16 @@ async function loadQOLFeatures() {
 
         if (tooltip) toastr.info(tooltip, extensionName, {toastClass: 'qol-tooltip-toast'});
     });
+
+    macros.register('charLastZoomed', {
+        category: macros.category.NAMES,
+        description: 'Returns the name of the last character zoomed by Quality of Life.',
+        returns: 'Character name',
+        returnType: macros.valueType.STRING,
+        handler() {
+            return QualityOfLife.lastZoomedCharacter || '';
+        },
+    })
 }
 
 //  * MARK:Interface
@@ -584,6 +596,7 @@ globalThis.QualityOfLife = {
 	error,
     AIHorde: new AIHorde(),
     extensionName,
+    lastZoomedCharacter: '',
 };
 
 // * MARK:Extension settings

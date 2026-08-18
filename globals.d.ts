@@ -71,6 +71,7 @@ declare namespace QualityOfLife {
         error: (...args: any) => void;
         AIHorde: AIHorde;
         extensionName: 'Quality of Life';
+        lastZoomedCharacter: string;
     };
 
     type HordeWorker = {
