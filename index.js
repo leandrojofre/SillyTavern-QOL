@@ -204,23 +204,29 @@ async function setClipboard(text = '') {
 }
 
 /**
+ * @param {Object} [options]
+ * @param {boolean} [options.allowMuted]
  * @returns {(Character|UserCharacter)[]}
  */
-function getChatMembers() {
+function getChatMembers({allowMuted = true} = {}) {
     const {characters, characterId, groupId, groups} = context();
     const group = groupId ? groups.find(g => g.id === groupId) : null;
-    const members = group ? characters.filter(c => group.members.includes(c.avatar)) : [];
+    const disabled = group?.disabled_members || [];
     const statuses = QualityOfLife.getStatusAvatarMap({onlyEnabled: false}).values().map(s => ({
         ...s.getCharacter(),
         avatar: s.getThumbnail(),
     }));
 
+    let members = group ? group.members.map(m => characters.find(c => c.avatar === m)) : [];
+
     if (!members.length && characterId) members.push(characters[characterId]);
 
-    return [
+    if (!allowMuted && disabled.length) return [
         ...members,
         ...statuses,
-    ];
+    ].filter(m => !disabled.some(d => d === m.avatar));
+
+    return [...members, ...statuses];
 }
 
 /**
@@ -284,12 +290,10 @@ function getCharacterThumbnailFromMess(mess) {
     if (extensionSettings.features.guessAvatarFromContent && mess?.mes) {
         /** @type {{member: Character|UserCharacter; id: number;}} */
         let lastMember = {member: null, id: -1};
-        const members = getChatMembers();
+        const members = getChatMembers({allowMuted: false});
 
         for (const member of members) {
             const id = mess.mes.lastIndexOf(member.name);
-
-            QualityOfLife.log({id, member, mess});
 
             if (id > lastMember.id) lastMember = {id, member};
         }

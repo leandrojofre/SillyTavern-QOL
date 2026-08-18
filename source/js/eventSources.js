@@ -45,9 +45,13 @@ function init() {
 
     eventSource.on(eventTypes.GENERATION_STARTED, function (args) {
         QualityOfLife.log(eventTypes.GENERATION_STARTED, args);
+        activatedWiEntries = [];
+
         hideRegenerateButton();
 
-        activatedWiEntries = [];
+        if (extensionSettings.features.guessAvatarFromContent) {
+            zoomCharacterAvatar();
+        }
     });
 
     eventSource.on(eventTypes.USER_MESSAGE_RENDERED, function (args) {
@@ -223,4 +227,13 @@ function init() {
         if (!extensionSettings.enabled || !extensionSettings.features.showActivatedWiEntries) return;
         if (args?.new?.successful) activatedWiEntries.push(...args.new.successful);
     });
+
+    const StatUsMaximus = Presence.ext('StatUsMaximus');
+
+    if (StatUsMaximus.enabled) {
+        eventSource.on(StatUsMaximus.global.EVENTS.THUMBNAIL_UPDATE, function (data) {
+            QualityOfLife.log(StatUsMaximus.global.EVENTS.THUMBNAIL_UPDATE, data);
+            zoomCharacterAvatar();
+        });
+    }
 }
