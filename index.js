@@ -56,9 +56,6 @@ const {
     eventTypes,
     chat,
     groups,
-    groupId,
-    characterId,
-    characters,
     powerUserSettings,
     tags,
     SlashCommand,
@@ -360,15 +357,29 @@ function getLocalStorageVar(var_name, { def_value = '' } = {}) {
 
 /**
  * Modifies a function to wrap it in a function that first executes a callback and THEN the original function.
- * @param {Function} [originalFunction] wrapMethod will not modify this method, it will only force it to execute extra code before its call.
+ * @template {Function} Original
+ * @param {Original} [originalFunction] wrapMethod will not modify this method, it will only force it to execute extra code before its call.
+ * @param {any} [targetThis] wrapMethod will not modify this method, it will only force it to execute extra code before its call.
  * @param {Function} [callback] Additional code to execute before the original method.
- * @returns Returns the original function, with the callback added.
+ * @returns {(...args: any[]) => ReturnType<Original>} Returns the original function, with the callback added.
  */
-function wrapMethod(originalFunction, callback) {
-    return function (...args) {
-        callback(args);
-        return originalFunction.apply(this, args);
+function wrapMethod(originalFunction, targetThis, callback) {
+    function wrapped(...args) {
+        callback.apply(this, args);
+        return originalFunction.apply(targetThis || originalFunction, args);
     };
+
+    try {
+        Object.defineProperty(wrapped, 'name', { value: originalFunction.name, configurable: true });
+    } catch (_) {}
+
+    try {
+        Object.defineProperty(wrapped, 'length', { value: originalFunction.length });
+    } catch (_) {}
+
+    wrapped.toString = () => originalFunction.toString();
+
+    return wrapped;
 }
 
 /**
@@ -490,18 +501,16 @@ async function loadQOLFeatures() {
 
     const $rightSendForm = document.getElementById('rightSendForm');
     const $send_but = document.getElementById('send_but');
-
     const $regenerate_but = document.createElement('div');
+
     $regenerate_but.id = 'regenerate_but';
     $regenerate_but.title = 'Retry last message';
     $regenerate_but.classList.add('fa-solid', 'fa-repeat', 'interactable');
-
     $rightSendForm.insertBefore($regenerate_but, $send_but);
+
     $('#regenerate_but').on('click', triggerRegenerate);
 
     hideRegenerateButton(!extensionSettings.features.quickRegenerate);
-
-    // Auto zoom last message Avatar
 
     const zoomedAvatar = await HTML_TEMPLATES.get('zoomedAvatar');
 
@@ -519,10 +528,6 @@ async function loadQOLFeatures() {
         $(this).prop('src', fallback);
     });
 
-    setRootCSSVariables('zoomedAvatarDisplay', getLocalStorageVar('qol-zoomed-avatar-display', {
-        def_value: extensionSettings.features.zoomCharacterAvatar ? 'flex' : 'none',
-    }));
-
     $('#qol-zoomed-avatar-close').on('click', function () {
         localStorage.setItem('qol-zoomed-avatar-display', 'none');
         setRootCSSVariables('zoomedAvatarDisplay', 'none');
@@ -536,16 +541,12 @@ async function loadQOLFeatures() {
 
     zoomCharacterAvatar();
 
-    // Custom Request Samplers
-
     $(document).on('click', '#qol-custom-samplers-list .sampler-key', function (e) {
         const text = $(e.currentTarget)?.text() ?? '';
 
         setClipboard(text);
         toastr.info('Sampler key sent to the clipboard', extensionName);
     });
-
-    // Show Request Information
 
     $(document).on('click', '#chat .mes_timer', function (e) {
         const tooltip = $(e.currentTarget).attr('title');
@@ -630,10 +631,10 @@ const settingsCallbacks = {
             return;
         }
 
-        // @ts-ignore
-        toastr.error = wrapMethod(toastr.error, (args) => playAudio(audioGenerationError));
+        const toastrErrorWrap = wrapMethod(toastr.error, toastr, (args) => playAudio(audioGenerationError));
+        const consoleLogWrap =  wrapMethod(console.log, console, (args) => {
+            args = Array.isArray(args) ? args : [args];
 
-        console.log = wrapMethod(console.log, (args) => {
             for (const arg of args) {
                 if (!arg?.name?.includes('Error')) continue;
                 if (arg.message?.includes('Request aborted') && preventNextAbortSound)
@@ -646,6 +647,9 @@ const settingsCallbacks = {
                     playAudio(audioGenerationError);
             }
         });
+
+        toastr.error = toastrErrorWrap;
+        console.log = consoleLogWrap;
     },
 
     /** Enables/Disables the zoom in avatar feature.
