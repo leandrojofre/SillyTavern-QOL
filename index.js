@@ -5,6 +5,7 @@ import { copyText } from '../../../utils.js';
 import { commonEnumProviders } from '../../../slash-commands/SlashCommandCommonEnumsProvider.js';
 
 import { ExternalExtension } from './source/classes/ExternalExtension.js';
+import { AIHorde } from './source/classes/AIHorde.js';
 import * as eventSources from './source/js/eventSources.js';
 import * as slashCommands from './source/js/slashCommands.js';
 
@@ -22,6 +23,9 @@ export {
     simpleUserInput,
     context,
     // ST Imports
+    callGenericPopup,
+    t,
+    POPUP_TYPE,
     eventSource,
     eventTypes,
     lodash,
@@ -44,6 +48,8 @@ const {
     stopGeneration,
     getThumbnailUrl,
     isMobile,
+    callGenericPopup,
+    POPUP_TYPE,
     saveSettingsDebounced,
     extensionSettings: extension_settings,
     eventSource,
@@ -576,6 +582,7 @@ globalThis.QualityOfLife = {
 	log,
 	debug,
 	error,
+    AIHorde: new AIHorde(),
     extensionName,
 };
 
@@ -825,6 +832,7 @@ eventSource.once(eventTypes.APP_INITIALIZED, async function () {
 
     eventSources.init();
     slashCommands.init();
+    slashCommands.updateCustomSamplersList();
 
-    await slashCommands.updateCustomSamplersList();
+    await QualityOfLife.AIHorde.init();
 });
