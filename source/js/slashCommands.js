@@ -423,7 +423,7 @@ function init() {
                         <pre><code>/qol-flush-tag-filter</code></pre>
                     </li>
                     <li>
-                        <pre><code>/qol-flush-tag-filter filter=character-list Hunter</code></pre>
+                        <pre><code>/qol-flush-tag-filter filter=character-list</code></pre>
                     </li>
                 </ul>
             </div>`,
